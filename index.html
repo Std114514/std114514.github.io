@@ -52,32 +52,102 @@ ol{padding-left:18px;margin:6px 0}
 
 
 <script>
-// ------- 游戏核心（简化版本） -------
 const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-let scoreEl = document.getElementById('score');
-let restartBtn = document.getElementById('restart');
-let submitBtn = document.getElementById('submit');
-let nameInput = document.getElementById('name');
-let leadersList = document.getElementById('leaders');
-let statusEl = document.getElementById('status');
 
 
-const W = canvas.width, H = canvas.height;
+function loop(){ update(); draw(); requestAnimationFrame(loop); }
 
 
-// player
-let player = {x:50, y:H-40, w:40, h:40, vy:0, grounded:true};
-let gravity = 0.8;
-let jumpPower = -12;
+// controls
+window.addEventListener('keydown', (e)=>{ if(e.code==='Space'){ jump(); } });
+canvas.addEventListener('click', jump);
+function jump(){ if(!running) return; if(player.grounded){ player.vy = jumpPower; player.grounded=false; } }
+restartBtn.addEventListener('click', ()=>{ reset(); });
 
 
-// obstacles
-let obstacles = [];
-let tick = 0;
-let speed = 6;
-let score = 0;
-let running = true;
+function onGameOver(){
+// show score, allow submit
+console.log('Game over, score:', Math.floor(score/10));
+}
 
 
+reset(); loop();
+
+
+// ------- 排行榜 & 实时同步 -------
+// 配置 WebSocket 服务器地址（默认本地）
+const WS_ADDR = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? `ws://${location.hostname}:3000` : `wss://${location.hostname}:3000`;
+
+
+let socket = null;
+let connected = false;
+let usingServer = false;
+let localKey = 'dino_local_leaderboard_v1';
+
+
+function connectWs(){
+try{
+socket = new WebSocket(WS_ADDR);
+socket.addEventListener('open', ()=>{ connected=true; usingServer=true; statusEl.textContent = '已连接到实时服务';
+// 请求当前榜单
+socket.send(JSON.stringify({type:'get'}));
+});
+socket.addEventListener('message', (ev)=>{
+try{ const msg = JSON.parse(ev.data);
+if(msg.type === 'leaderboard'){
+renderLeaders(msg.data);
+}
+}catch(e){ console.warn('recv parse err', e); }
+});
+socket.addEventListener('close', ()=>{ connected=false; usingServer=false; statusEl.textContent = '与实时服务断开，使用本地排行榜'; loadLocal(); });
+socket.addEventListener('error', (e)=>{ console.warn(e); usingServer=false; statusEl.textContent = '无法连接实时服务，使用本地排行榜'; loadLocal(); });
+}catch(e){ usingServer=false; statusEl.textContent = '无法连接实时服务，使用本地排行榜'; loadLocal(); }
+}
+
+
+function renderLeaders(arr){
+leadersList.innerHTML = '';
+arr.slice(0,10).forEach((it, idx)=>{
+const li = document.createElement('li'); li.textContent = `${it.name} — ${it.score}`; leadersList.appendChild(li);
+});
+}
+
+
+function loadLocal(){
+const raw = localStorage.getItem(localKey);
+const arr = raw ? JSON.parse(raw) : [];
+renderLeaders(arr);
+}
+
+
+function saveLocalSubmit(name,score){
+const raw = localStorage.getItem(localKey);
+const arr = raw ? JSON.parse(raw) : [];
+arr.push({name,score});
+arr.sort((a,b)=>b.score-a.score);
+const top = arr.slice(0,10);
+localStorage.setItem(localKey, JSON.stringify(top));
+renderLeaders(top);
+}
+
+
+submitBtn.addEventListener('click', ()=>{
+const nm = (nameInput.value || '匿名').slice(0,20);
+const sc = Math.floor(score/10);
+if(usingServer && connected){
+socket.send(JSON.stringify({type:'submit', name:nm, score:sc}));
+} else {
+saveLocalSubmit(nm, sc);
+alert('已保存到本地排行榜（未连接到实时服务）');
+}
+});
+
+
+// 初次加载 — 尝试连接 WebSocket，若失败使用本地
+connectWs();
+setTimeout(()=>{ if(!connected) loadLocal(); }, 800);
+
+
+</script>
+</body>
 </html>
