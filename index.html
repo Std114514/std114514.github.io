@@ -1,227 +1,196 @@
-<!doctype html>
-<html lang="zh-CN">
-<title>std114514 的小站</title>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Chrome Dino — 游戏 + 实时排行榜</title>
-<style>
-:root{--bg:#f7f7f7;--fg:#333}
-body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:var(--bg); color:var(--fg)}
-.wrap{display:flex;gap:20px;padding:20px}
-.game{background:#fff;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06);padding:16px}
-canvas{display:block;background:#f2f2f2;border-radius:4px}
-.controls{margin-top:8px}
-.score{font-weight:700;font-size:18px}
-.lead{width:320px}
-.lead h3{margin:0 0 8px}
-.leaderboard{background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
-input[type=text]{padding:6px;border:1px solid #ddd;border-radius:4px;width:160px}
-button{padding:6px 10px;border-radius:6px;border:0;background:#111;color:#fff;cursor:pointer}
-.small{font-size:12px;color:#666;margin-top:8px}
-.row{display:flex;gap:8px;align-items:center}
-ol{padding-left:18px;margin:6px 0}
-</style>
+    <meta charset="UTF-8">
+    <title>Google Dino Game with Real-Time Leaderboard</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+        }
+        #canvas {
+            border: 1px solid #ccc;
+            background-color: white;
+        }
+        #leaderboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border: 1px solid #ccc;
+            max-width: 200px;
+        }
+        #leaderboard h3 {
+            margin: 0 0 10px;
+        }
+        #leaderboard ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js"></script>
 </head>
 <body>
-<div class="wrap">
-<div class="game">
-<div style="display:flex;justify-content:space-between;align-items:center;">
-<div class="score">分数: <span id="score">0</span></div>
-<div class="small">按 空格 或 点击 以跳跃</div>
-</div>
-<canvas id="c" width="800" height="150"></canvas>
-<div class="controls">
-<button id="restart">重新开始</button>
-<button id="submit">提交分数</button>
-<div style="margin-top:8px">
-<label>名字：<input id="name" type="text" placeholder="玩家名 (示例: Alice)"/></label>
-</div>
-</div>
-</div>
+    <canvas id="canvas" width="600" height="200"></canvas>
+    <div id="leaderboard">
+        <h3>Top Scores</h3>
+        <ol id="leaderboard-list"></ol>
+    </div>
 
+    <script>
+        // Replace with your own Firebase config
+        // Go to console.firebase.google.com, create a project, enable Firestore, and get the config
+        const firebaseConfig = {
+            apiKey: "AIzaSyB6ADugySKGAhxK0yrLWVrPZrqhYeKRnG4",
+            authDomain: "std114514.firebaseapp.com",
+            projectId: "std114514",
+            storageBucket: "std114514.firebasestorage.app",
+            messagingSenderId: "833464029809",
+            appId: "1:833464029809:web:eb51e6547776db8b5e41d0"
+        };
 
-<div class="lead">
-<div class="leaderboard">
-<h3>实时排行榜 (Top 10)</h3>
-<div id="status">未连接到实时服务，使用本地排行榜</div>
-<ol id="leaders"></ol>
-<div class="small">若启用了服务器，排行榜会实时同步；若没有，分数保存在本地浏览器。</div>
-</div>
-</div>
-</div>
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(app);
 
+        // Function to submit score
+        async function submitScore(username, score) {
+            try {
+                const docRef = await db.collection("scores").add({
+                    username: username,
+                    score: score,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log("Score submitted!");
+            } catch (error) {
+                console.error("Error submitting score: ", error);
+            }
+        }
 
-<script>
-// ------- 游戏核心（简化版本） -------
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-let scoreEl = document.getElementById('score');
-let restartBtn = document.getElementById('restart');
-let submitBtn = document.getElementById('submit');
-let nameInput = document.getElementById('name');
-let leadersList = document.getElementById('leaders');
-let statusEl = document.getElementById('status');
-  
+        // Function to update leaderboard in real-time
+        function updateLeaderboard() {
+            const list = document.getElementById("leaderboard-list");
+            list.innerHTML = "";
+            db.collection("scores")
+                .orderBy("score", "desc")
+                .limit(10)
+                .onSnapshot(snapshot => {
+                    list.innerHTML = "";
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const li = document.createElement("li");
+                        li.textContent = `${data.username}: ${data.score}`;
+                        list.appendChild(li);
+                    });
+                });
+        }
 
-const W = canvas.width, H = canvas.height;
+        // Call to update leaderboard on load
+        updateLeaderboard();
 
+        // Game Logic Below
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
 
-// player
-let player = {x:50, y:H-40, w:40, h:40, vy:0, grounded:true};
-let gravity = 0.8;
-let jumpPower = -12;
+        // Game variables
+        let dino = { x: 50, y: 150, width: 20, height: 40, dy: 0, gravity: 0.5, jump: -10, isJumping: false };
+        let obstacles = [];
+        let score = 0;
+        let gameOver = false;
+        let gameSpeed = 5;
 
+        // Draw dino
+        function drawDino() {
+            ctx.fillStyle = "green";
+            ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+        }
 
-// obstacles
-let obstacles = [];
-let tick = 0;
-let speed = 6;
-let score = 0;
-let running = true;
+        // Draw obstacle
+        function drawObstacle(obstacle) {
+            ctx.fillStyle = "red";
+            ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+        }
 
+        // Update game
+        function update() {
+            if (gameOver) return;
 
-function spawnObstacle(){
-const h = 24 + Math.random()*24;
-obstacles.push({x:W, y:H-20-h, w:20 + Math.random()*20, h:h});
-}
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Dino physics
+            dino.dy += dino.gravity;
+            dino.y += dino.dy;
+            if (dino.y > 150) {
+                dino.y = 150;
+                dino.isJumping = false;
+            }
 
-function reset(){
-obstacles = [];
-tick = 0; score = 0; speed = 6; player.y = H-40; player.vy=0; player.grounded=true; running=true;
-}
+            drawDino();
 
+            // Generate obstacles
+            if (Math.random() < 0.02) {
+                obstacles.push({ x: canvas.width, y: 150, width: 20, height: 40 });
+            }
 
-function update(){
-if(!running) return;
-tick++;
-// spawn
-if(tick % Math.max(40, 90 - Math.floor(score/100)) === 0) spawnObstacle();
-// player physics
-player.vy += gravity; player.y += player.vy;
-if(player.y + player.h >= H-20){ player.y = H-20-player.h; player.vy=0; player.grounded=true; }
-// obstacles
-for(let i=obstacles.length-1;i>=0;i--){
-obstacles[i].x -= speed;
-if(obstacles[i].x + obstacles[i].w < 0) obstacles.splice(i,1);
-// collision
-if(rectsOverlap(player, obstacles[i])){
-running = false; onGameOver();
-}
-}
-// scrore
-score += 1; scoreEl.textContent = Math.floor(score/10);
-// speed up
-speed = 6 + Math.floor(score/1000);
-}
+            // Move and draw obstacles
+            obstacles.forEach((obs, index) => {
+                obs.x -= gameSpeed;
+                drawObstacle(obs);
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(index, 1);
+                    score++;
+                }
 
+                // Collision detection
+                if (
+                    dino.x < obs.x + obs.width &&
+                    dino.x + dino.width > obs.x &&
+                    dino.y < obs.y + obs.height &&
+                    dino.y + dino.height > obs.y
+                ) {
+                    gameOver = true;
+                    alert(`Game Over! Score: ${score}`);
+                    const username = prompt("Enter your username to submit score:");
+                    if (username) {
+                        submitScore(username, score);
+                    }
+                }
+            });
 
-function rectsOverlap(a,b){
-return !(a.x+a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h);
-}
-  
+            // Draw score
+            ctx.fillStyle = "black";
+            ctx.font = "20px Arial";
+            ctx.fillText(`Score: ${score}`, 10, 30);
 
-// player
-ctx.fillStyle = '#222'; ctx.fillRect(player.x, player.y, player.w, player.h);
-// obstacles
-for(let o of obstacles){ ctx.fillRect(o.x, o.y, o.w, o.h); }
-}
+            requestAnimationFrame(update);
+        }
 
+        // Jump on space or click
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space" && !dino.isJumping) {
+                dino.dy = dino.jump;
+                dino.isJumping = true;
+            }
+        });
+        canvas.addEventListener("click", () => {
+            if (!dino.isJumping) {
+                dino.dy = dino.jump;
+                dino.isJumping = true;
+            }
+        });
 
-function loop(){ update(); draw(); requestAnimationFrame(loop); }
+        // Start game
+        update();
+    </script>
 
-
-// controls
-window.addEventListener('keydown', (e)=>{ if(e.code==='Space'){ jump(); } });
-canvas.addEventListener('click', jump);
-function jump(){ if(!running) return; if(player.grounded){ player.vy = jumpPower; player.grounded=false; } }
-restartBtn.addEventListener('click', ()=>{ reset(); });
-
-
-function onGameOver(){
-// show score, allow submit
-console.log('Game over, score:', Math.floor(score/10));
-}
-
-
-reset(); loop();
-
-
-// ------- 排行榜 & 实时同步 -------
-// 配置 WebSocket 服务器地址（默认本地）
-const WS_ADDR = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? `ws://${location.hostname}:3000` : `wss://${location.hostname}:3000`;
-
-
-let socket = null;
-let connected = false;
-let usingServer = false;
-let localKey = 'dino_local_leaderboard_v1';
-
-
-function connectWs(){
-try{
-socket = new WebSocket(WS_ADDR);
-socket.addEventListener('open', ()=>{ connected=true; usingServer=true; statusEl.textContent = '已连接到实时服务';
-// 请求当前榜单
-socket.send(JSON.stringify({type:'get'}));
-});
-socket.addEventListener('message', (ev)=>{
-try{ const msg = JSON.parse(ev.data);
-if(msg.type === 'leaderboard'){
-renderLeaders(msg.data);
-}
-}catch(e){ console.warn('recv parse err', e); }
-});
-socket.addEventListener('close', ()=>{ connected=false; usingServer=false; statusEl.textContent = '与实时服务断开，使用本地排行榜'; loadLocal(); });
-socket.addEventListener('error', (e)=>{ console.warn(e); usingServer=false; statusEl.textContent = '无法连接实时服务，使用本地排行榜'; loadLocal(); });
-}catch(e){ usingServer=false; statusEl.textContent = '无法连接实时服务，使用本地排行榜'; loadLocal(); }
-}
-  
-
-function renderLeaders(arr){
-leadersList.innerHTML = '';
-arr.slice(0,10).forEach((it, idx)=>{
-const li = document.createElement('li'); li.textContent = `${it.name} — ${it.score}`; leadersList.appendChild(li);
-});
-}
-
-
-function loadLocal(){
-const raw = localStorage.getItem(localKey);
-const arr = raw ? JSON.parse(raw) : [];
-renderLeaders(arr);
-}
-
-
-function saveLocalSubmit(name,score){
-const raw = localStorage.getItem(localKey);
-const arr = raw ? JSON.parse(raw) : [];
-arr.push({name,score});
-arr.sort((a,b)=>b.score-a.score);
-const top = arr.slice(0,10);
-localStorage.setItem(localKey, JSON.stringify(top));
-renderLeaders(top);
-}
-
-
-submitBtn.addEventListener('click', ()=>{
-const nm = (nameInput.value || '匿名').slice(0,20);
-const sc = Math.floor(score/10);
-if(usingServer && connected){
-socket.send(JSON.stringify({type:'submit', name:nm, score:sc}));
-} else {
-saveLocalSubmit(nm, sc);
-alert('已保存到本地排行榜（未连接到实时服务）');
-}
-});
-
-
-// 初次加载 — 尝试连接 WebSocket，若失败使用本地
-connectWs();
-setTimeout(()=>{ if(!connected) loadLocal(); }, 800);
-
-
-</script>
+    <p style="position: absolute; bottom: 10px; text-align: center; width: 100%;">Note: Set up Firebase project and replace config. In Firestore, allow read/write in rules for testing (allow read, write: if true;). Press Space to jump.</p>
 </body>
 </html>
