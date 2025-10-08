@@ -1,194 +1,83 @@
-<!DOCTYPE html>
-<html lang="en">
-<title>ranking</title>
-<h1>欢迎来到 std114514 的小站！</h1>
+<!doctype html>
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Dinosaur Game with Leaderboard</title>
-    <style>
-        * {
-            padding: 0;
-            margin: 0;
-        }
-        .game {
-            width: 600px;
-            height: 200px;
-            border: 1px solid #000000;
-            margin: auto;
-        }
-        #dino {
-            width: 70px;
-            height: 70px;
-            background-image: url(t-rex.png); /* Replace with your image URL or path */
-            background-size: auto 70px;
-            position: relative;
-            top: 143px;
-        }
-        .jump {
-            animation: jump 0.3s linear;
-        }
-        @keyframes jump {
-            0% {
-                top: 143px;
-            }
-            30% {
-                top: 115px;
-            }
-            50% {
-                top: 70px;
-            }
-            80% {
-                top: 115px;
-            }
-            100% {
-                top: 143px;
-            }
-        }
-        #cactus {
-            width: 20px;
-            height: 40px;
-            position: relative;
-            top: 91px;
-            left: 580px;
-            background-image: url(cactus.png); /* Replace with your image URL or path */
-            background-size: 20px 40px;
-            animation: cactus-block 1.2s infinite linear;
-        }
-        @keyframes cactus-block {
-            0% {
-                left: 600px;
-            }
-            100% {
-                left: -20px;
-            }
-        }
-        #score {
-            text-align: center;
-            font-size: 20px;
-            margin: 10px auto;
-        }
-        #leaderboard {
-            width: 600px;
-            margin: auto;
-            border: 1px solid #000;
-            padding: 10px;
-        }
-    </style>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Chrome Dino — 游戏 + 实时排行榜</title>
+<style>
+:root{--bg:#f7f7f7;--fg:#333}
+body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:var(--bg); color:var(--fg)}
+.wrap{display:flex;gap:20px;padding:20px}
+.game{background:#fff;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06);padding:16px}
+canvas{display:block;background:#f2f2f2;border-radius:4px}
+.controls{margin-top:8px}
+.score{font-weight:700;font-size:18px}
+.lead{width:320px}
+.lead h3{margin:0 0 8px}
+.leaderboard{background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+input[type=text]{padding:6px;border:1px solid #ddd;border-radius:4px;width:160px}
+button{padding:6px 10px;border-radius:6px;border:0;background:#111;color:#fff;cursor:pointer}
+.small{font-size:12px;color:#666;margin-top:8px}
+.row{display:flex;gap:8px;align-items:center}
+ol{padding-left:18px;margin:6px 0}
+</style>
 </head>
 <body>
-    <div class="game">
-        <div id="dino"></div>
-        <div id="cactus"></div>
-    </div>
-    <div id="score">Score: 0</div>
-    <div id="leaderboard">
-        <h3>Realtime Leaderboard (Top 10)</h3>
-        <ul id="leaderboard-list"></ul>
-    </div>
-    <script>
-        // Replace with your own Firebase config
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+<div class="wrap">
+<div class="game">
+<div style="display:flex;justify-content:space-between;align-items:center;">
+<div class="score">分数: <span id="score">0</span></div>
+<div class="small">按 空格 或 点击 以跳跃</div>
+</div>
+<canvas id="c" width="800" height="150"></canvas>
+<div class="controls">
+<button id="restart">重新开始</button>
+<button id="submit">提交分数</button>
+<div style="margin-top:8px">
+<label>名字：<input id="name" type="text" placeholder="玩家名 (示例: Alice)"/></label>
+</div>
+</div>
+</div>
 
-        // Get visitor IP
-        let visitorIP = 'unknown';
-        fetch('https://api.ipify.org?format=json')
-            .then(response => response.json())
-            .then(data => {
-                visitorIP = data.ip;
-            })
-            .catch(error => console.error('Error fetching IP:', error));
 
-        // Game logic
-        const dino = document.getElementById("dino");
-        const cactus = document.getElementById("cactus");
-        let score = 0;
-        let isAlive = true;
-        let scoreInterval;
+<div class="lead">
+<div class="leaderboard">
+<h3>实时排行榜 (Top 10)</h3>
+<div id="status">未连接到实时服务，使用本地排行榜</div>
+<ol id="leaders"></ol>
+<div class="small">若启用了服务器，排行榜会实时同步；若没有，分数保存在本地浏览器。</div>
+</div>
+</div>
+</div>
 
-        function startGame() {
-            isAlive = true;
-            score = 0;
-            document.getElementById('score').textContent = 'Score: 0';
-            cactus.style.animation = 'cactus-block 1.2s infinite linear';
-            scoreInterval = setInterval(() => {
-                if (isAlive) {
-                    score++;
-                    document.getElementById('score').textContent = 'Score: ' + score;
-                }
-            }, 100);
-        }
 
-        function jump() {
-            if (!dino.classList.contains("jump")) {
-                dino.classList.add("jump");
-                setTimeout(function () {
-                    dino.classList.remove("jump");
-                }, 300);
-            }
-        }
+<script>
+// ------- 游戏核心（简化版本） -------
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let scoreEl = document.getElementById('score');
+let restartBtn = document.getElementById('restart');
+let submitBtn = document.getElementById('submit');
+let nameInput = document.getElementById('name');
+let leadersList = document.getElementById('leaders');
+let statusEl = document.getElementById('status');
 
-        let checkAlive = setInterval(function () {
-            if (!isAlive) return;
-            let dinoTop = parseInt(window.getComputedStyle(dino).getPropertyValue("top"));
-            let cactusLeft = parseInt(window.getComputedStyle(cactus).getPropertyValue("left"));
-            if (cactusLeft > 0 && cactusLeft < 70 && dinoTop >= 143) {
-                isAlive = false;
-                cactus.style.animationPlayState = "paused";
-                clearInterval(scoreInterval);
-                alert("Whoops! Game Over :( Your score: " + score);
-                // Upload score to Firebase
-                if (visitorIP !== 'unknown') {
-                    db.ref('scores').push({
-                        ip: visitorIP,
-                        score: score,
-                        timestamp: Date.now()
-                    });
-                }
-                // Restart option
-                if (confirm("Play again?")) {
-                    startGame();
-                }
-            }
-        }, 10);
 
-        document.addEventListener("keydown", function (event) {
-            if (isAlive) jump();
-        });
+const W = canvas.width, H = canvas.height;
 
-        // Load and display leaderboard in real-time
-        db.ref('scores').orderByChild('score').limitToLast(10).on('value', function(snapshot) {
-            let scores = [];
-            snapshot.forEach(function(childSnapshot) {
-                scores.push(childSnapshot.val());
-            });
-            scores.sort((a, b) => b.score - a.score);
-            let list = document.getElementById('leaderboard-list');
-            list.innerHTML = '';
-            scores.forEach(s => {
-                let li = document.createElement('li');
-                li.textContent = `${s.ip}: ${s.score}`;
-                list.appendChild(li);
-            });
-        });
 
-        // Start the game initially
-        startGame();
-    </script>
-    <p style="text-align: center;">Note: You need to create a Firebase project at https://console.firebase.google.com/ and replace the firebaseConfig with your own details. Also, download t-rex.png and cactus.png images and place them in the same directory, or use online URLs. Set Firebase Realtime Database rules to allow read/write for demo purposes (e.g., {"rules": {".read": true, ".write": true}}).</p>
-</body>
+// player
+let player = {x:50, y:H-40, w:40, h:40, vy:0, grounded:true};
+let gravity = 0.8;
+let jumpPower = -12;
+
+
+// obstacles
+let obstacles = [];
+let tick = 0;
+let speed = 6;
+let score = 0;
+let running = true;
+
+
 </html>
