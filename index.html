@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="zh-CN">
+<title>std114514 的小站</title>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>std114514的小站</title>
+<title>Chrome Dino — 游戏 + 实时排行榜</title>
 <style>
 :root{--bg:#f7f7f7;--fg:#333}
 body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:var(--bg); color:var(--fg)}
@@ -52,7 +53,80 @@ ol{padding-left:18px;margin:6px 0}
 
 
 <script>
+// ------- 游戏核心（简化版本） -------
 const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let scoreEl = document.getElementById('score');
+let restartBtn = document.getElementById('restart');
+let submitBtn = document.getElementById('submit');
+let nameInput = document.getElementById('name');
+let leadersList = document.getElementById('leaders');
+let statusEl = document.getElementById('status');
+  
+
+const W = canvas.width, H = canvas.height;
+
+
+// player
+let player = {x:50, y:H-40, w:40, h:40, vy:0, grounded:true};
+let gravity = 0.8;
+let jumpPower = -12;
+
+
+// obstacles
+let obstacles = [];
+let tick = 0;
+let speed = 6;
+let score = 0;
+let running = true;
+
+
+function spawnObstacle(){
+const h = 24 + Math.random()*24;
+obstacles.push({x:W, y:H-20-h, w:20 + Math.random()*20, h:h});
+}
+
+
+function reset(){
+obstacles = [];
+tick = 0; score = 0; speed = 6; player.y = H-40; player.vy=0; player.grounded=true; running=true;
+}
+
+
+function update(){
+if(!running) return;
+tick++;
+// spawn
+if(tick % Math.max(40, 90 - Math.floor(score/100)) === 0) spawnObstacle();
+// player physics
+player.vy += gravity; player.y += player.vy;
+if(player.y + player.h >= H-20){ player.y = H-20-player.h; player.vy=0; player.grounded=true; }
+// obstacles
+for(let i=obstacles.length-1;i>=0;i--){
+obstacles[i].x -= speed;
+if(obstacles[i].x + obstacles[i].w < 0) obstacles.splice(i,1);
+// collision
+if(rectsOverlap(player, obstacles[i])){
+running = false; onGameOver();
+}
+}
+// scrore
+score += 1; scoreEl.textContent = Math.floor(score/10);
+// speed up
+speed = 6 + Math.floor(score/1000);
+}
+
+
+function rectsOverlap(a,b){
+return !(a.x+a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h);
+}
+  
+
+// player
+ctx.fillStyle = '#222'; ctx.fillRect(player.x, player.y, player.w, player.h);
+// obstacles
+for(let o of obstacles){ ctx.fillRect(o.x, o.y, o.w, o.h); }
+}
 
 
 function loop(){ update(); draw(); requestAnimationFrame(loop); }
@@ -103,7 +177,7 @@ socket.addEventListener('close', ()=>{ connected=false; usingServer=false; statu
 socket.addEventListener('error', (e)=>{ console.warn(e); usingServer=false; statusEl.textContent = '无法连接实时服务，使用本地排行榜'; loadLocal(); });
 }catch(e){ usingServer=false; statusEl.textContent = '无法连接实时服务，使用本地排行榜'; loadLocal(); }
 }
-
+  
 
 function renderLeaders(arr){
 leadersList.innerHTML = '';
