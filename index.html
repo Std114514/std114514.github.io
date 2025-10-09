@@ -1,196 +1,563 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>std114514's dino game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>std114514 的小站</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
         body {
-            margin: 0;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            height: 100vh;
-            background-color: #f7f7f7;
-            font-family: Arial, sans-serif;
+            gap: 30px;
         }
-        #canvas {
-            border: 1px solid #ccc;
-            background-color: white;
+        
+        header {
+            text-align: center;
+            padding: 20px;
         }
-        #leaderboard {
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 40px;
+            width: 100%;
+        }
+        
+        .wheel-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+        }
+        
+        .wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+        }
+        
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                #ff5252, #ff4081, #e040fb, #7c4dff,
+                #536dfe, #448aff, #40c4ff, #18ffff,
+                #64ffda, #69f0ae, #b2ff59, #eeff41,
+                #ffff00, #ffd740, #ffab40, #ff6e40
+            );
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.16, 0.99);
+        }
+        
+        .wheel-number {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: white;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            z-index: 10;
+        }
+        
+        .wheel-pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 40px;
+            background-color: #ffcc00;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            z-index: 20;
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.7);
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+        }
+        
+        .result-display {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2rem;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .result-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffcc00;
+            margin-top: 5px;
+        }
+        
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(45deg, #ff5252, #ff4081);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 82, 82, 0.4);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 82, 82, 0.6);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .leaderboard-section {
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .leaderboard-title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            color: #ffcc00;
+        }
+        
+        .score-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        input {
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+        }
+        
+        .leaderboard-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        
+        .leaderboard-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        
+        .rank {
+            font-weight: bold;
+            color: #ffcc00;
+            width: 30px;
+        }
+        
+        .player-name {
+            flex: 1;
+            text-align: left;
+        }
+        
+        .player-score {
+            font-weight: bold;
+            width: 80px;
+            text-align: right;
+        }
+        
+        .top-score {
+            background: rgba(255, 204, 0, 0.2);
+            border: 1px solid rgba(255, 204, 0, 0.5);
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .wheel-section, .leaderboard-section {
+                width: 100%;
+            }
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff5252, #ffcc00);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .info-message {
+            background: rgba(255, 255, 255, 0.1);
             padding: 10px;
-            border: 1px solid #ccc;
-            max-width: 200px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            text-align: center;
         }
-        #leaderboard h3 {
-            margin: 0 0 10px;
+        
+        .warning {
+            background: rgba(255, 204, 0, 0.2);
+            color: #ffcc00;
+            border: 1px solid rgba(255, 204, 0, 0.5);
         }
-        #leaderboard ol {
-            margin: 0;
-            padding-left: 20px;
+        
+        .leaderboard-note {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            opacity: 0.7;
         }
     </style>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js"></script>
 </head>
 <body>
-    <canvas id="canvas" width="600" height="200"></canvas>
-    <div id="leaderboard">
-        <h3>Top Scores</h3>
-        <ol id="leaderboard-list"></ol>
+    <div class="container">
+        <header>
+            <h1>RP Tester v1.0.7</h1>
+            <p class="subtitle">by std114514</p>
+        </header>
+        
+        <div class="main-content">
+            <section class="wheel-section">
+                <div class="wheel-container">
+                    <div class="wheel" id="wheel">
+                        <div class="wheel-number" id="wheelNumber">0</div>
+                    </div>
+                    <div class="wheel-pointer"></div>
+                </div>
+                
+                <div class="controls">
+                    <div class="result-display">
+                        你的RP: <span class="result-number" id="result">-</span>
+                    </div>
+                    <div class="info-message" id="dailyInfo">
+                        今天还可以上传成绩
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <button id="spinButton">开始抽奖</button>
+                </div>
+            </section>
+            
+            <section class="leaderboard-section">
+                <h2 class="leaderboard-title">14 天内的前 10 名</h2>
+                
+                <div class="score-form">
+                    <input type="text" id="playerName" placeholder="请输入您的名字" maxlength="15">
+                    <button id="submitScore">上传成绩到排行榜</button>
+                </div>
+                
+                <div class="leaderboard-list" id="leaderboard">
+                    <!-- 排行榜条目将通过JavaScript动态生成 -->
+                </div>
+            </section>
+        </div>
     </div>
 
     <script>
-        // Replace with your own Firebase config
-        // Go to console.firebase.google.com, create a project, enable Firestore, and get the config
-        const firebaseConfig = {
-            apiKey: "AIzaSyB6ADugySKGAhxK0yrLWVrPZrqhYeKRnG4",
-            authDomain: "std114514.firebaseapp.com",
-            projectId: "std114514",
-            storageBucket: "std114514.firebasestorage.app",
-            messagingSenderId: "833464029809",
-            appId: "1:833464029809:web:eb51e6547776db8b5e41d0"
-        };
-
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(app);
-
-        // Function to submit score
-        async function submitScore(username, score) {
-            try {
-                const docRef = await db.collection("scores").add({
-                    username: username,
-                    score: score,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                console.log("Score submitted!");
-            } catch (error) {
-                console.error("Error submitting score: ", error);
-            }
-        }
-
-        // Function to update leaderboard in real-time
-        function updateLeaderboard() {
-            const list = document.getElementById("leaderboard-list");
-            list.innerHTML = "";
-            db.collection("scores")
-                .orderBy("score", "desc")
-                .limit(10)
-                .onSnapshot(snapshot => {
-                    list.innerHTML = "";
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        const li = document.createElement("li");
-                        li.textContent = `${data.username}: ${data.score}`;
-                        list.appendChild(li);
-                    });
-                });
-        }
-
-        // Call to update leaderboard on load
-        updateLeaderboard();
-
-        // Game Logic Below
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-
-        // Game variables
-        let dino = { x: 50, y: 150, width: 20, height: 40, dy: 0, gravity: 0.5, jump: -10, isJumping: false };
-        let obstacles = [];
-        let score = 0;
-        let gameOver = false;
-        let gameSpeed = 5;
-
-        // Draw dino
-        function drawDino() {
-            ctx.fillStyle = "green";
-            ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
-        }
-
-        // Draw obstacle
-        function drawObstacle(obstacle) {
-            ctx.fillStyle = "red";
-            ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-        }
-
-        // Update game
-        function update() {
-            if (gameOver) return;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Dino physics
-            dino.dy += dino.gravity;
-            dino.y += dino.dy;
-            if (dino.y > 150) {
-                dino.y = 150;
-                dino.isJumping = false;
-            }
-
-            drawDino();
-
-            // Generate obstacles
-            if (Math.random() < 0.02) {
-                obstacles.push({ x: canvas.width, y: 150, width: 20, height: 40 });
-            }
-
-            // Move and draw obstacles
-            obstacles.forEach((obs, index) => {
-                obs.x -= gameSpeed;
-                drawObstacle(obs);
-                if (obs.x + obs.width < 0) {
-                    obstacles.splice(index, 1);
-                    score++;
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const wheel = document.getElementById('wheel');
+            const wheelNumber = document.getElementById('wheelNumber');
+            const resultDisplay = document.getElementById('result');
+            const spinButton = document.getElementById('spinButton');
+            const playerNameInput = document.getElementById('playerName');
+            const submitScoreButton = document.getElementById('submitScore');
+            const leaderboard = document.getElementById('leaderboard');
+            const progressBar = document.getElementById('progressBar');
+            const dailyInfo = document.getElementById('dailyInfo');
+            
+            let currentResult = null;
+            let isSpinning = false;
+            let canUploadToday = true;
+            
+            // 初始化排行榜数据
+            let leaderboardData = JSON.parse(localStorage.getItem('wheelLeaderboard')) || [];
+            
+            // 模拟IP地址（在实际应用中应从服务器获取）
+            const userIP = "192.168.1." + Math.floor(Math.random() * 255);
+            
+            // 检查今天是否已经上传过成绩
+            function checkDailyUpload() {
+                const today = new Date().toDateString();
+                const dailyData = JSON.parse(localStorage.getItem('dailyUploads')) || {};
+                
+                if (dailyData[userIP] === today) {
+                    canUploadToday = false;
+                    dailyInfo.textContent = "今天已经上传过成绩，无法再次上传";
+                    dailyInfo.className = "info-message warning";
+                    submitScoreButton.disabled = true;
+                } else {
+                    canUploadToday = true;
+                    dailyInfo.textContent = "今天还可以上传成绩";
+                    dailyInfo.className = "info-message";
+                    submitScoreButton.disabled = false;
                 }
-
-                // Collision detection
-                if (
-                    dino.x < obs.x + obs.width &&
-                    dino.x + dino.width > obs.x &&
-                    dino.y < obs.y + obs.height &&
-                    dino.y + dino.height > obs.y
-                ) {
-                    gameOver = true;
-                    alert(`Game Over! Score: ${score}`);
-                    const username = prompt("Enter your username to submit score:");
-                    if (username) {
-                        submitScore(username, score);
+            }
+            
+            // 获取14天前的日期
+            function getFourteenDaysAgo() {
+                const date = new Date();
+                date.setDate(date.getDate() - 14);
+                return date;
+            }
+            
+            // 渲染排行榜
+            function renderLeaderboard() {
+                // 获取14天前的日期
+                const fourteenDaysAgo = getFourteenDaysAgo();
+                
+                // 过滤出14天内的数据
+                const recentData = leaderboardData.filter(entry => {
+                    const entryDate = new Date(entry.date);
+                    return entryDate >= fourteenDaysAgo;
+                });
+                
+                // 按分数从高到低排序
+                recentData.sort((a, b) => b.score - a.score);
+                
+                // 只取前10名
+                const topTen = recentData.slice(0, 10);
+                
+                // 清空排行榜
+                leaderboard.innerHTML = '';
+                
+                if (topTen.length === 0) {
+                    leaderboard.innerHTML = '<div class="info-message">暂无排行榜数据</div>';
+                    return;
+                }
+                
+                // 添加排行榜条目
+                topTen.forEach((entry, index) => {
+                    const item = document.createElement('div');
+                    item.className = `leaderboard-item ${index === 0 ? 'top-score' : ''}`;
+                    
+                    item.innerHTML = `
+                        <div class="rank">${index + 1}</div>
+                        <div class="player-name">${entry.name}</div>
+                        <div class="player-score">${entry.score}</div>
+                    `;
+                    
+                    leaderboard.appendChild(item);
+                });
+            }
+            
+            // 初始化
+            function init() {
+                renderLeaderboard();
+                checkDailyUpload();
+                
+                // 重置转盘位置
+                wheel.style.transition = 'none';
+                wheel.style.transform = 'rotate(0deg)';
+                wheelNumber.textContent = '0';
+                
+                // 强制重绘
+                void wheel.offsetWidth;
+                
+                // 恢复过渡效果
+                wheel.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.16, 0.99)';
+            }
+            
+            init();
+            
+            // 抽奖功能
+            spinButton.addEventListener('click', function() {
+                if (isSpinning) return;
+                
+                isSpinning = true;
+                spinButton.disabled = true;
+                progressBar.style.width = '0%';
+                
+                // 生成随机数
+                const randomNumber = Math.floor(Math.random() * 1000);
+                
+                // 计算旋转角度（确保停在随机数对应的位置）
+                const rotations = 7; // 7圈
+                const finalRotation = rotations * 360 + (360 - (randomNumber % 360));
+                
+                // 重置转盘位置并开始旋转
+                wheel.style.transition = 'none';
+                wheel.style.transform = 'rotate(0deg)';
+                
+                // 强制重绘
+                void wheel.offsetWidth;
+                
+                // 恢复过渡效果并开始旋转
+                wheel.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.16, 0.99)';
+                wheel.style.transform = `rotate(${finalRotation}deg)`;
+                
+                // 定义数字更新间隔序列
+                const intervals = [
+                    ...Array(15).fill(100),   // 0.1秒 * 15
+                    ...Array(7).fill(150),    // 0.15秒 * 7
+                    ...Array(4).fill(200),    // 0.2秒 * 4
+                    ...Array(2).fill(300),    // 0.3秒 * 2
+                    ...Array(1).fill(500),    // 0.5秒 * 1
+                    ...Array(1).fill(1000)    // 1秒 * 1
+                ];
+                
+                let currentIntervalIndex = 0;
+                let updateCount = 0;
+                const totalUpdates = intervals.length;
+                
+                // 更新进度条
+                function updateProgress() {
+                    const progress = (updateCount / totalUpdates) * 100;
+                    progressBar.style.width = `${progress}%`;
+                }
+                
+                // 数字更新函数
+                function updateNumber() {
+                    if (currentIntervalIndex < intervals.length) {
+                        // 显示随机数
+                        wheelNumber.textContent = Math.floor(Math.random() * 1000);
+                        
+                        // 设置下一个更新时间
+                        setTimeout(updateNumber, intervals[currentIntervalIndex]);
+                        
+                        currentIntervalIndex++;
+                        updateCount++;
+                        updateProgress();
+                    } else {
+                        // 更新完成，显示最终结果
+                        wheelNumber.textContent = randomNumber;
+                        resultDisplay.textContent = randomNumber;
+                        currentResult = randomNumber;
+                        isSpinning = false;
+                        spinButton.disabled = false;
+                        progressBar.style.width = '100%';
                     }
                 }
+                
+                // 开始数字更新序列
+                updateNumber();
             });
-
-            // Draw score
-            ctx.fillStyle = "black";
-            ctx.font = "20px Arial";
-            ctx.fillText(`Score: ${score}`, 10, 30);
-
-            requestAnimationFrame(update);
-        }
-
-        // Jump on space or click
-        document.addEventListener("keydown", (e) => {
-            if (e.code === "Space" && !dino.isJumping) {
-                dino.dy = dino.jump;
-                dino.isJumping = true;
-            }
+            
+            // 提交成绩到排行榜
+            submitScoreButton.addEventListener('click', function() {
+                if (!currentResult) {
+                    alert('请先进行抽奖！');
+                    return;
+                }
+                
+                if (!canUploadToday) {
+                    alert('今天抽奖不是第一次，无法上传成绩！');
+                    return;
+                }
+                
+                const playerName = playerNameInput.value.trim();
+                if (!playerName) {
+                    alert('请输入名字！');
+                    return;
+                }
+                
+                // 添加到排行榜数据
+                leaderboardData.push({
+                    name: playerName,
+                    score: currentResult,
+                    date: new Date().toISOString() // 使用ISO格式存储日期
+                });
+                
+                // 保存到本地存储
+                localStorage.setItem('wheelLeaderboard', JSON.stringify(leaderboardData));
+                
+                // 记录今天已经上传过成绩
+                const today = new Date().toDateString();
+                const dailyData = JSON.parse(localStorage.getItem('dailyUploads')) || {};
+                dailyData[userIP] = today;
+                localStorage.setItem('dailyUploads', JSON.stringify(dailyData));
+                
+                // 更新状态
+                checkDailyUpload();
+                
+                // 重新渲染排行榜
+                renderLeaderboard();
+                
+                // 清空输入框
+                playerNameInput.value = '';
+                
+                alert('成绩上传成功！');
+            });
         });
-        canvas.addEventListener("click", () => {
-            if (!dino.isJumping) {
-                dino.dy = dino.jump;
-                dino.isJumping = true;
-            }
-        });
-
-        // Start game
-        update();
     </script>
-
-    <p style="position: absolute; bottom: 10px; text-align: center; width: 100%;">Note: Set up Firebase project and replace config. In Firestore, allow read/write in rules for testing (allow read, write: if true;). Press Space to jump.</p>
 </body>
 </html>
