@@ -544,13 +544,15 @@
                 });
             }
 
-            // 实时监听排行榜变化
+            // 实时监听排行榜变化 - 修复查询
             function setupLeaderboardListener() {
                 const fourteenDaysAgo = getFourteenDaysAgo();
+                const fourteenDaysAgoString = fourteenDaysAgo.toISOString().split('T')[0];
                 
-                // 使用简单的查询，避免复合索引问题
+                // 修复查询 - 先按日期过滤，然后按分数排序
                 db.collection('scores')
-                    .where('date', '>=', fourteenDaysAgo.toISOString().split('T')[0])
+                    .where('date', '>=', fourteenDaysAgoString)
+                    .orderBy('date', 'desc')
                     .orderBy('score', 'desc')
                     .limit(10)
                     .onSnapshot((snapshot) => {
@@ -561,26 +563,33 @@
                         renderLeaderboard(scores);
                     }, (error) => {
                         console.error('监听排行榜失败:', error);
+                        
                         // 如果复合查询失败，尝试简单查询
+                        console.log('尝试备用查询...');
                         db.collection('scores')
                             .orderBy('score', 'desc')
-                            .limit(10)
+                            .limit(20)
                             .get()
                             .then((snapshot) => {
                                 const scores = [];
+                                const fourteenDaysAgo = getFourteenDaysAgo();
+                                
                                 snapshot.forEach(doc => {
                                     const data = doc.data();
                                     // 手动过滤14天内的数据
                                     const entryDate = new Date(data.date);
-                                    if (entryDate >= getFourteenDaysAgo()) {
+                                    if (entryDate >= fourteenDaysAgo) {
                                         scores.push(data);
                                     }
                                 });
-                                renderLeaderboard(scores);
+                                
+                                // 只取前10名
+                                const topTen = scores.slice(0, 10);
+                                renderLeaderboard(topTen);
                             })
                             .catch((error) => {
-                                console.error('备用查询失败:', error);
-                                leaderboard.innerHTML = '<div class="info-message">加载排行榜失败，请检查Firestore规则</div>';
+                                console.error('备用查询也失败:', error);
+                                leaderboard.innerHTML = '<div class="info-message">加载排行榜失败，请检查Firestore规则和索引</div>';
                             });
                     });
             }
