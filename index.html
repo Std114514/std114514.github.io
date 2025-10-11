@@ -373,9 +373,8 @@
         }
     </style>
     
-    <!-- 引入 Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <!-- 引入 Supabase SDK 替代 Firebase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
@@ -431,19 +430,12 @@
     </div>
 
     <script>
-        // Firebase 配置
-        const firebaseConfig = {
-            apiKey: "AIzaSyDRM1dc3hTc9R5VVHIFgGjH1ay_3CEGwoY",
-            authDomain: "rptester-85faf.firebaseapp.com",
-            projectId: "rptester-85faf",
-            storageBucket: "rptester-85faf.firebasestorage.app",
-            messagingSenderId: "771812678847",
-            appId: "1:771812678847:web:fe3e8ec5158773ee893a0a",
-        };
+        // Supabase 配置 - 请替换为您的实际配置
+        const SUPABASE_URL = 'https://xwrgpngwmdjbmsziuodl.supabase.co'; // 替换为您的 Supabase URL
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3cmdwbmd3bWRqYm1zeml1b2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNDUzNjksImV4cCI6MjA3NTcyMTM2OX0.kVpcSCmmwcLcs60C0BjPxyXFDxdl3V4ny-vutKsnbV8'; // 替换为您的 Supabase anon key
 
-        // 初始化 Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // 初始化 Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         document.addEventListener('DOMContentLoaded', function() {
             // 获取DOM元素
@@ -491,12 +483,16 @@
                     const today = new Date().toISOString().split('T')[0];
                     const ip = await getClientIP();
                     
-                    const todaySubmissions = await db.collection('scores')
-                        .where('ip', '==', ip)
-                        .where('date', '==', today)
-                        .get();
+                    // 使用 Supabase 查询今天是否已提交
+                    const { data, error } = await supabase
+                        .from('scores')
+                        .select('*')
+                        .eq('ip', ip)
+                        .eq('date', today);
                     
-                    if (!todaySubmissions.empty) {
+                    if (error) throw error;
+                    
+                    if (data && data.length > 0) {
                         canUploadToday = false;
                         dailyInfo.textContent = "今天已经上传过成绩，无法再次上传";
                         dailyInfo.className = "info-message warning";
@@ -544,76 +540,85 @@
                 });
             }
 
-            // 实时监听排行榜变化 - 修复查询
+            // 实时监听排行榜变化 - 使用 Supabase 实时订阅
             function setupLeaderboardListener() {
                 const fourteenDaysAgo = getFourteenDaysAgo();
                 const fourteenDaysAgoString = fourteenDaysAgo.toISOString().split('T')[0];
                 
-                // 修复查询 - 先按日期过滤，然后按分数排序
-                db.collection('scores')
-                    .where('date', '>=', fourteenDaysAgoString)
-                    .orderBy('date', 'desc')
-                    .orderBy('score', 'desc')
-                    .limit(10)
-                    .onSnapshot((snapshot) => {
-                        const scores = [];
-                        snapshot.forEach(doc => {
-                            scores.push(doc.data());
-                        });
-                        renderLeaderboard(scores);
-                    }, (error) => {
-                        console.error('监听排行榜失败:', error);
-                        
-                        // 如果复合查询失败，尝试简单查询
-                        console.log('尝试备用查询...');
-                        db.collection('scores')
-                            .orderBy('score', 'desc')
-                            .limit(20)
-                            .get()
-                            .then((snapshot) => {
-                                const scores = [];
-                                const fourteenDaysAgo = getFourteenDaysAgo();
-                                
-                                snapshot.forEach(doc => {
-                                    const data = doc.data();
-                                    // 手动过滤14天内的数据
-                                    const entryDate = new Date(data.date);
-                                    if (entryDate >= fourteenDaysAgo) {
-                                        scores.push(data);
-                                    }
-                                });
-                                
-                                // 只取前10名
-                                const topTen = scores.slice(0, 10);
-                                renderLeaderboard(topTen);
-                            })
-                            .catch((error) => {
-                                console.error('备用查询也失败:', error);
-                                leaderboard.innerHTML = '<div class="info-message">加载排行榜失败，请检查Firestore规则和索引</div>';
-                            });
-                    });
+                // 设置实时订阅
+                const subscription = supabase
+                    .channel('leaderboard-changes')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'scores'
+                        },
+                        async (payload) => {
+                            // 当数据变化时，重新获取排行榜
+                            await fetchLeaderboard();
+                        }
+                    )
+                    .subscribe();
+                
+                // 初始获取排行榜
+                fetchLeaderboard();
+            }
+
+            // 获取排行榜数据
+            async function fetchLeaderboard() {
+                try {
+                    const fourteenDaysAgo = getFourteenDaysAgo();
+                    const fourteenDaysAgoString = fourteenDaysAgo.toISOString().split('T')[0];
+                    
+                    // 使用 Supabase 查询14天内的前10名
+                    const { data, error } = await supabase
+                        .from('scores')
+                        .select('*')
+                        .gte('date', fourteenDaysAgoString)
+                        .order('score', { ascending: false })
+                        .order('date', { ascending: false })
+                        .limit(10);
+                    
+                    if (error) throw error;
+                    
+                    renderLeaderboard(data || []);
+                } catch (error) {
+                    console.error('获取排行榜失败:', error);
+                    leaderboard.innerHTML = '<div class="info-message">加载排行榜失败</div>';
+                }
             }
 
             // 获取统计数据
             async function fetchStats() {
                 try {
                     // 获取总用户数（去重）
-                    const usersSnapshot = await db.collection('scores').get();
+                    const { data: usersData, error: usersError } = await supabase
+                        .from('scores')
+                        .select('ip');
+                    
+                    if (usersError) throw usersError;
+                    
                     const uniqueUsers = new Set();
-                    usersSnapshot.forEach(doc => {
-                        uniqueUsers.add(doc.data().ip);
+                    usersData.forEach(entry => {
+                        uniqueUsers.add(entry.ip);
                     });
                     totalUsers.textContent = uniqueUsers.size;
                     
                     // 获取今日抽奖次数
                     const today = new Date().toISOString().split('T')[0];
                     const ip = await getClientIP();
-                    const todaySpinsSnapshot = await db.collection('spins')
-                        .where('date', '==', today)
-                        .where('ip', '==', ip)
-                        .get();
                     
-                    todaySpinsCount = todaySpinsSnapshot.size;
+                    const { data: spinsData, error: spinsError } = await supabase
+                        .from('spins')
+                        .select('*')
+                        .eq('ip', ip)
+                        .eq('date', today);
+                    
+                    if (spinsError) throw spinsError;
+                    
+                    todaySpinsCount = spinsData.length;
                     todaySpins.textContent = todaySpinsCount;
                 } catch (error) {
                     console.error('获取统计数据失败:', error);
@@ -730,11 +735,17 @@
                     const today = new Date().toISOString().split('T')[0];
                     const ip = await getClientIP();
                     
-                    await db.collection('spins').add({
-                        ip: ip,
-                        date: today,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    // 使用 Supabase 插入数据
+                    const { error } = await supabase
+                        .from('spins')
+                        .insert([
+                            {
+                                ip: ip,
+                                date: today
+                            }
+                        ]);
+                    
+                    if (error) throw error;
                     
                     todaySpinsCount++;
                     todaySpins.textContent = todaySpinsCount;
@@ -765,14 +776,19 @@
                     const today = new Date().toISOString().split('T')[0];
                     const ip = await getClientIP();
                     
-                    // 添加到排行榜
-                    await db.collection('scores').add({
-                        name: playerName,
-                        score: currentResult,
-                        ip: ip,
-                        date: today,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    // 使用 Supabase 插入数据
+                    const { error } = await supabase
+                        .from('scores')
+                        .insert([
+                            {
+                                name: playerName,
+                                score: currentResult,
+                                ip: ip,
+                                date: today
+                            }
+                        ]);
+                    
+                    if (error) throw error;
                     
                     // 更新状态
                     canUploadToday = false;
