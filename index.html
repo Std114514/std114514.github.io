@@ -379,7 +379,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>RPTester v1.1.4</h1>
+            <h1>RPTester v1.1.5</h1>
             <p class="subtitle">by std114514</p>
         </header>
         
@@ -394,10 +394,10 @@
                 
                 <div class="controls">
                     <div class="result-display">
-                        你的RP: <span class="result-number" id="result">-</span>
+                        你的 RP: <span class="result-number" id="result">-</span>
                     </div>
                     <div class="info-message" id="dailyInfo">
-                        正在获取IP地址...
+                        正在获取 IP 地址...
                     </div>
                     <div class="ip-display" id="ipDisplay">
                         IP: 获取中...
@@ -405,7 +405,7 @@
                     <div class="progress-container">
                         <div class="progress-bar" id="progressBar"></div>
                     </div>
-                    <button id="spinButton">开始抽奖</button>
+                    <button id="spinButton">开始测 RP</button>
                 </div>
             </section>
             
@@ -413,12 +413,12 @@
                 <h2 class="leaderboard-title">14天内的前10名</h2>
                 
                 <div class="score-form">
-                    <input type="text" id="playerName" placeholder="请输入您的名字" maxlength="15">
+                    <input type="text" id="playerName" placeholder="请输入 ID (最多 15 位)" maxlength="15">
                     <button id="submitScore">上传成绩到排行榜</button>
                 </div>
                 
                 <div class="stats">
-                    <div>今日已测RP: <span id="todaySpins">0</span> 次</div>
+                    <div>今日已测 RP: <span id="todaySpins">0</span> 次</div>
                     <div>总用户数: <span id="totalUsers">0</span></div>
                 </div>
                 
@@ -468,7 +468,7 @@
                         userIP = data.ip;
                         ipDisplay.textContent = `IP: ${userIP}`;
                     } catch (error) {
-                        console.error('获取IP失败:', error);
+                        console.error('获取 IP 失败:', error);
                         // 如果获取失败，使用备用方案
                         userIP = 'unknown-' + Math.random().toString(36).substr(2, 9);
                         ipDisplay.textContent = `IP: 获取失败 (使用临时标识)`;
@@ -768,7 +768,7 @@
                 
                 const playerName = playerNameInput.value.trim();
                 if (!playerName) {
-                    alert('请输入名字！');
+                    alert('请输入 ID！');
                     return;
                 }
                 
