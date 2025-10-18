@@ -312,6 +312,10 @@
             opacity: 0.7;
             font-size: 0.9rem;
         }
+        .arm-button {
+            background: linear-gradient(135deg, #00b4db, #0083b0);
+            color: white;
+        }
     </style>
     
     <!-- 引入 Supabase SDK -->
@@ -340,6 +344,12 @@
                 <div>编码解码工具</div>
                 <div class="button-description">v1.0.1</div>
             </a>
+            
+            <a href="/arm/index.html" class="nav-button arm-button">
+                <div class="button-icon">📏</div>
+                <div>78 长度测量</div>
+                <div class="button-description">v1.0.7</div>
+            </a>
         </div>
         
         <!-- 签到区域 -->
@@ -361,17 +371,6 @@
             
             <div class="signin-message" id="signinMessage">
                 签到功能已就绪
-            </div>
-        </div>
-        
-        <div class="feature-grid">
-            <div class="feature-card">
-                <h3>RP 测试</h3>
-                <p>测试今日 RP (0-999)，记录成绩，排行榜保存 14 天内的前 10 名</p>
-            </div>
-            <div class="feature-card">
-                <h3>编码解码工具</h3>
-                <p>提供多种数据转换功能：JSON 格式化、Base64 编码、URL 编解码、HTML 转义等</p>
             </div>
         </div>
         
