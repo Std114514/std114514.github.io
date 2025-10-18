@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>78 长度检测</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(45deg, #00b4db, #0083b0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .back-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #ff5252, #ff4081);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 82, 82, 0.4);
+        }
+        
+        .measurement-section {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: #ffcc00;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 180, 219, 0.5);
+        }
+        
+        .calculate-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #00b4db, #0083b0);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 180, 219, 0.4);
+        }
+        
+        .calculate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 180, 219, 0.6);
+        }
+        
+        .result-section {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            display: none;
+        }
+        
+        .result-title {
+            text-align: center;
+            color: #ffcc00;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .arm-length {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            color: #00b4db;
+            margin: 20px 0;
+            text-shadow: 0 0 10px rgba(0, 180, 219, 0.3);
+        }
+        
+        .percentage {
+            text-align: center;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #ffcc00;
+        }
+        
+        .indicator-container {
+            width: 100%;
+            height: 30px;
+            background: linear-gradient(90deg, 
+                #ff0000, 
+                #ff8000, 
+                #ffff00, 
+                #80ff00, 
+                #00ff00,
+                #00ff80,
+                #00ffff,
+                #0080ff,
+                #0000ff,
+                #8000ff,
+                #ff00ff);
+            border-radius: 15px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .indicator-marker {
+            position: absolute;
+            top: -5px;
+            width: 4px;
+            height: 40px;
+            background: white;
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            transition: left 1s ease-out;
+        }
+        
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .message-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: center;
+            border-left: 4px solid #00b4db;
+        }
+        
+        .message-title {
+            color: #ffcc00;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .info-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-title {
+            color: #ffcc00;
+            margin-bottom: 10px;
+        }
+        
+        .info-text {
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>78 Size Identifier v1.0.7</h1>
+            <p>by std114514</p>
+            <button class="back-btn" onclick="window.location.href='/'">返回首页</button>
+        </header>
+        
+        <div class="measurement-section">
+            <div class="input-group">
+                <label for="userName">请输入姓名：</label>
+                <input type="text" id="userName" placeholder="输入姓名（中英文均可，最多 20 位）" maxlength="20">
+            </div>
+            <button class="calculate-btn" id="calculateBtn">计算 78 长度</button>
+        </div>
+        
+        <div class="result-section" id="resultSection">
+            <h2 class="result-title">计算结果</h2>
+            <div class="arm-length" id="armLength">0.00 cm</div>
+            <div class="percentage" id="percentage">超过了全国 0% 的人</div>
+            
+            <div class="indicator-container">
+                <div class="indicator-marker" id="indicatorMarker"></div>
+            </div>
+            <div class="scale-labels">
+                <span>0cm</span>
+                <span>5cm</span>
+                <span>10cm</span>
+                <span>15cm</span>
+                <span>20cm</span>
+                <span>25cm</span>
+                <span>30cm</span>
+            </div>
+            
+            <div class="message-box">
+                <div class="message-title">长度段分析</div>
+                <div id="lengthMessage">请输入姓名开始测量</div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h3 class="info-title">测量说明</h3>
+            <p class="info-text">
+                • 相同姓名的用户将获得相同的测量结果<br>
+                • 结果范围为 0.00cm~30.00cm<br>
+                • 测量结果准确率 >0.9178%
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const userNameInput = document.getElementById('userName');
+            const calculateBtn = document.getElementById('calculateBtn');
+            const resultSection = document.getElementById('resultSection');
+            const armLengthDisplay = document.getElementById('armLength');
+            const percentageDisplay = document.getElementById('percentage');
+            const indicatorMarker = document.getElementById('indicatorMarker');
+            const lengthMessage = document.getElementById('lengthMessage');
+            
+            // 简单的哈希函数
+            function simpleHash(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // 转换为32位整数
+                }
+                return Math.abs(hash);
+            }
+            
+            // 计算 78 长度 (0.00 - 30.00 cm)
+            function calculateArmLength(name) {
+                if (!name || name.trim() === '') {
+                    return 0;
+                }
+                
+                const hash = simpleHash(name.trim());
+                // 将哈希值映射到 0-3000 范围，然后除以100得到0.00-30.00
+                const length = (hash % 3001) / 100;
+                return Math.round(length * 100) / 100; // 保留两位小数
+            }
+            
+            // 获取长度段提示语
+            function getLengthMessage(length) {
+                if (length >= 0 && length <= 1) {
+                    return "笑死！0cm？这是纳米级别的 78 吧！建议直接去医院检查一下是不是发育不良！";
+                } else if (length > 1 && length <= 5) {
+                    return "这是吃 b 吃多了吧，怎么还有个位数的？";
+                } else if (length > 5 && length <= 10) {
+                    return "这长度也太寒酸了吧！建议立即联系客服申请退款！";
+                } else if (length > 10 && length <= 15) {
+                    return "还是多去看点 91 吧，连平均长度都没到。";
+                } else if (length > 15 && length <= 20) {
+                    return "勉强能用，但不要拿出来炫技，免得丢人现眼。";
+                } else if (length > 20 && length <= 25) {
+                    return "是不是糖心 vlog 看多了？每天能 d 6~7 次？";
+                } else if (length > 25 && length < 29) {
+                    return "哇！这长度简直惊为天人！建议申请吉尼斯世界纪录！";
+                } else if (length >= 29 && length <= 30) {
+                    return "天啊！这长度简直突破天际！建议立即联系 NASA 进行科学研究！";
+                }
+                return "长度数据异常。";
+            }
+            
+            // 计算百分比
+            function calculatePercentage(length) {
+                // 假设长度服从正态分布，这里使用简化的线性模型
+                // 实际上应该使用更复杂的统计模型
+                const percentage = (length / 30) * 100;
+                return Math.min(100, Math.max(0, percentage)).toFixed(1);
+            }
+            
+            // 更新指示器位置
+            function updateIndicator(length) {
+                const percentage = (length / 30) * 100;
+                const position = Math.min(100, Math.max(0, percentage));
+                indicatorMarker.style.left = `calc(${position}% - 2px)`;
+            }
+            
+            // 计算按钮点击事件
+            calculateBtn.addEventListener('click', function() {
+                const userName = userNameInput.value.trim();
+                
+                if (!userName) {
+                    alert('请输入您的姓名');
+                    return;
+                }
+                
+                // 计算长度
+                const armLength = calculateArmLength(userName);
+                const percentage = calculatePercentage(armLength);
+                const message = getLengthMessage(armLength);
+                
+                // 更新显示
+                armLengthDisplay.textContent = `${armLength.toFixed(2)} cm`;
+                percentageDisplay.textContent = `超过了全国 ${percentage}% 的人`;
+                lengthMessage.textContent = message;
+                
+                // 更新指示器
+                updateIndicator(armLength);
+                
+                // 显示结果区域
+                resultSection.style.display = 'block';
+                
+                // 平滑滚动到结果区域
+                resultSection.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // 支持按回车键计算
+            userNameInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    calculateBtn.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
