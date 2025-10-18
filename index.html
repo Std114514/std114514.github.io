@@ -322,7 +322,7 @@
         <header>
             <h1>std114514 的小站</h1>
             <p class="subtitle">
-                服务器时间：
+                服务器时间
                 <span class="current-time" id="currentTime">Loading...</span>
                 <span class="date-display" id="dateDisplay"></span>
             </p>
@@ -377,7 +377,7 @@
         </div>
         
         <div class="footer">
-            <p>© 2025 std114514</p>
+            <p>© 2025 std114514 | Supabase</p>
         </div>
     </div>
 
@@ -434,7 +434,7 @@
                 
                 // 查询签到记录
                 const { data, error } = await supabase
-                    .from('signins')
+                    .from('sign_ins')
                     .select('*')
                     .eq('ip', ip)
                     .order('date', { ascending: false })
@@ -505,7 +505,7 @@
                 
                 // 查询最近的签到记录
                 const { data: existingData, error: queryError } = await supabase
-                    .from('signins')
+                    .from('sign_ins')
                     .select('*')
                     .eq('ip', ip)
                     .order('date', { ascending: false })
@@ -537,7 +537,7 @@
                 
                 // 插入新的签到记录
                 const { error: insertError } = await supabase
-                    .from('signins')
+                    .from('sign_ins')
                     .insert([
                         {
                             ip: ip,
