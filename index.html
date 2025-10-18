@@ -424,6 +424,52 @@
         }
     }
     
+    // 安全地格式化日期显示
+    function formatDateForDisplay(dateString) {
+        try {
+            // 确保日期字符串是有效的
+            if (!dateString || dateString === 'Invalid Date') {
+                return '-';
+            }
+            
+            // 如果是ISO格式的日期字符串，直接使用
+            if (dateString.includes('-')) {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    return '-';
+                }
+                return date.toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+            }
+            
+            return '-';
+        } catch (error) {
+            console.error('日期格式化错误:', error);
+            return '-';
+        }
+    }
+    
+    // 安全地计算日期差异
+    function calculateDateDiff(date1, date2) {
+        try {
+            const d1 = new Date(date1);
+            const d2 = new Date(date2);
+            
+            if (isNaN(d1.getTime()) || isNaN(d2.getTime())) {
+                return 0;
+            }
+            
+            const diffTime = d2 - d1;
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        } catch (error) {
+            console.error('日期计算错误:', error);
+            return 0;
+        }
+    }
+    
     // 加载签到数据
     async function loadSigninData() {
         try {
@@ -442,18 +488,16 @@
             
             if (data && data.length > 0) {
                 const lastSignin = data[0];
-                const lastSigninDate = new Date(lastSignin.sign_date);
-                const todayDate = new Date(today);
+                const lastSigninDate = lastSignin.sign_date;
                 
                 // 计算连续签到天数
-                let continuousDays = lastSignin.continuous_days;
+                let continuousDays = lastSignin.continuous_days || 0;
                 
                 // 检查是否断签
-                const diffTime = todayDate - lastSigninDate;
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                const diffDays = calculateDateDiff(lastSigninDate, today);
                 
                 // 格式化日期显示
-                const formattedDate = formatDateForDisplay(lastSignin.sign_date);
+                const formattedDate = formatDateForDisplay(lastSigninDate);
                 
                 if (diffDays > 1) {
                     // 断签处理：扣除 2^(n-1) 天
@@ -505,19 +549,13 @@
             }
         } catch (error) {
             console.error('加载签到数据失败:', error);
+            document.getElementById('continuousDays').textContent = '0';
+            document.getElementById('lastSigninDate').textContent = '-';
+            document.getElementById('signinButton').disabled = false;
+            document.getElementById('signinButton').textContent = '点击签到';
             document.getElementById('signinMessage').textContent = '加载签到数据失败，请刷新页面重试';
             document.getElementById('signinMessage').className = 'signin-message error';
         }
-    }
-    
-    // 格式化日期显示
-    function formatDateForDisplay(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
     }
     
     // 执行签到
@@ -540,20 +578,18 @@
             
             if (existingData && existingData.length > 0) {
                 const lastSignin = existingData[0];
-                const lastSigninDate = new Date(lastSignin.sign_date);
-                const todayDate = new Date(today);
+                const lastSigninDate = lastSignin.sign_date;
                 
                 // 计算连续签到
-                const diffTime = todayDate - lastSigninDate;
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                const diffDays = calculateDateDiff(lastSigninDate, today);
                 
                 if (diffDays === 1) {
                     // 昨天签到了，连续天数+1
-                    continuousDays = lastSignin.continuous_days + 1;
+                    continuousDays = (lastSignin.continuous_days || 0) + 1;
                 } else if (diffDays > 1) {
                     // 断签了，计算新的连续天数
                     const deduction = Math.pow(2, diffDays - 2);
-                    continuousDays = Math.max(1, lastSignin.continuous_days - deduction + 1);
+                    continuousDays = Math.max(1, (lastSignin.continuous_days || 0) - deduction + 1);
                 }
                 // diffDays === 0 的情况不会发生，因为按钮已禁用
             }
