@@ -291,20 +291,21 @@
                 let res = 0;
                 for (let i = 0; i < str.length; i++) {
                     const charCode = str.charCodeAt(i);
-                     res = res * 7891 + (charCode - 32) * 9113 + 1378;
-                    // 防止溢出，取模一个大质数
-                     res = res % 2147483647;
+                    // 将res左移7位，然后减去res，然后加上字符码，然后异或（字符码左移3位）
+                    res = (res << 7) - res + charCode;
+                    res = res ^ (charCode << 3);
+                    res = res * 7891; // 一个大素数
                 }
                 return Math.abs(res);
             }
             
             // 计算 78 长度 (0.00 - 30.00 cm)
             function calculateArmLength(name) {
-                if (!name || name.trim() === '') {
+                if (!name) {
                     return 0;
                 }
                 
-                const hash = simpleHash(name.trim());
+                const hash = simpleHash(name);
                 // 将哈希值映射到 0-3000 范围，然后除以100得到0.00-30.00
                 const length = (hash % 3001) / 100;
                 return Math.round(length * 100) / 100; // 保留两位小数
