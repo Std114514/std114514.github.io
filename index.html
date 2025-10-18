@@ -437,7 +437,7 @@
                     .from('sign_ins')
                     .select('*')
                     .eq('ip', ip)
-                    .order('date', { ascending: false })
+                    .order('last_sign_date', { ascending: false })
                     .limit(1);
                 
                 if (error) throw error;
@@ -508,7 +508,7 @@
                     .from('sign_ins')
                     .select('*')
                     .eq('ip', ip)
-                    .order('date', { ascending: false })
+                    .order('last_sign_date', { ascending: false })
                     .limit(1);
                 
                 if (queryError) throw queryError;
@@ -541,7 +541,7 @@
                     .insert([
                         {
                             ip: ip,
-                            date: today,
+                            last_sign_date: today,
                             continuous_days: continuousDays
                         }
                     ]);
