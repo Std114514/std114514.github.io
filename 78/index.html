@@ -288,13 +288,14 @@
             
             // 简单的哈希函数
             function simpleHash(str) {
-                let hash = 0;
+                let res = 0;
                 for (let i = 0; i < str.length; i++) {
-                    const char = str.charCodeAt(i);
-                    hash = ((hash << 5) - hash) + char;
-                    hash = hash & hash; // 转换为32位整数
+                    const charCode = str.charCodeAt(i);
+                     res = res * 7891 + (charCode - 32) * 9113 + 1378;
+                    // 防止溢出，取模一个大质数
+                     res = res % 2147483647;
                 }
-                return Math.abs(hash);
+                return Math.abs(res);
             }
             
             // 计算 78 长度 (0.00 - 30.00 cm)
