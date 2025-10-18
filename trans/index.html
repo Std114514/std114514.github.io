@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编码解码工具</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Transform Tool v1.0.1</h1>
+            <p class="subtitle">by std114514</p>
+            <button class="back-btn" onclick="window.location.href='/'">返回首页</button>
+        </header>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <h2>输入数据</h2>
+                <textarea id="inputData" placeholder="在这里输入要转换的数据..."></textarea>
+                <div class="button-group">
+                    <button id="transformBtn" class="action-btn">转换</button>
+                    <button id="clearBtn" class="secondary-btn">清空</button>
+                </div>
+            </div>
+            
+            <div class="output-section">
+                <h2>输出结果</h2>
+                <div id="outputData" class="output-box">
+                    <p class="placeholder">转换结果将显示在这里...</p>
+                </div>
+                <button id="copyBtn" class="secondary-btn">复制结果</button>
+            </div>
+        </div>
+        
+        <div class="tools-section">
+            <h2>转换工具</h2>
+            <div class="tool-buttons">
+                <button class="tool-btn" data-type="json">JSON 格式化</button>
+                <button class="tool-btn" data-type="base64">Base64 编码/解码</button>
+                <button class="tool-btn" data-type="url">URL 编码/解码</button>
+                <button class="tool-btn" data-type="html">HTML 转义</button>
+                <button class="tool-btn" data-type="timestamp">时间戳转换</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
