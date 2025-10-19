@@ -86,6 +86,13 @@
             box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
         }
         
+        .auth-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
         .switch-btn {
             background: transparent;
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -147,6 +154,66 @@
             margin-top: 5px;
             color: #ffcc00;
         }
+        
+        /* 用户名检查样式 */
+        .username-check {
+            margin-top: 5px;
+            font-size: 0.8rem;
+            display: none;
+        }
+        
+        .username-check.available {
+            color: #4CAF50;
+        }
+        
+        .username-check.taken {
+            color: #f44336;
+        }
+        
+        .username-check.checking {
+            color: #ffcc00;
+        }
+        
+        .password-strength {
+            margin-top: 5px;
+            font-size: 0.8rem;
+        }
+        
+        .password-strength.weak {
+            color: #f44336;
+        }
+        
+        .password-strength.medium {
+            color: #ff9800;
+        }
+        
+        .password-strength.strong {
+            color: #4CAF50;
+        }
+        
+        .input-with-icon {
+            position: relative;
+        }
+        
+        .input-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+        }
+        
+        .input-icon.available {
+            color: #4CAF50;
+        }
+        
+        .input-icon.taken {
+            color: #f44336;
+        }
+        
+        .input-icon.checking {
+            color: #ffcc00;
+        }
     </style>
     
     <!-- 引入 Supabase SDK -->
@@ -154,7 +221,7 @@
 </head>
 <body>
     <div class="auth-container">
-        <h1>用户登录</h1>
+        <h1>登录/注册</h1>
         
         <!-- 登录表单 -->
         <div id="loginSection" class="form-section active">
@@ -174,7 +241,11 @@
         <div id="registerSection" class="form-section">
             <div class="form-group">
                 <label for="registerUsername">用户名</label>
-                <input type="text" id="registerUsername" placeholder="请输入用户名（3-20位）">
+                <div class="input-with-icon">
+                    <input type="text" id="registerUsername" placeholder="请输入用户名（3-20位）">
+                    <div class="input-icon" id="usernameIcon" style="display: none;">⏳</div>
+                </div>
+                <div class="username-check" id="usernameCheckResult"></div>
             </div>
             <div class="form-group">
                 <label for="registerEmail">邮箱</label>
@@ -183,13 +254,14 @@
             <div class="form-group">
                 <label for="registerPassword">密码</label>
                 <input type="password" id="registerPassword" placeholder="请输入密码（至少6位）">
+                <div class="password-strength" id="passwordStrength"></div>
             </div>
             <div class="form-group">
                 <label for="confirmPassword">确认密码</label>
                 <input type="password" id="confirmPassword" placeholder="请再次输入密码">
             </div>
             <div class="ip-restriction">注意：每个IP地址只能注册一个账户</div>
-            <button class="auth-btn" id="registerBtn">注册</button>
+            <button class="auth-btn" id="registerBtn" disabled>注册</button>
             <button class="auth-btn switch-btn" id="showLoginBtn">已有账号？点击登录</button>
         </div>
         
@@ -226,6 +298,81 @@
             }
         }
         
+        // 检查用户名是否可用
+        async function checkUsernameAvailability(username) {
+            if (!username || username.length < 3) {
+                return { available: false, message: '用户名至少需要3个字符' };
+            }
+            
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('username', username)
+                    .single();
+                
+                if (error && error.code === 'PGRST116') {
+                    // 未找到记录，用户名可用
+                    return { available: true, message: '用户名可用' };
+                } else if (data) {
+                    // 找到记录，用户名已被使用
+                    return { available: false, message: '用户名已被使用' };
+                } else {
+                    // 其他错误
+                    return { available: false, message: '检查用户名时出错' };
+                }
+            } catch (error) {
+                console.error('检查用户名失败:', error);
+                return { available: false, message: '检查用户名时出错' };
+            }
+        }
+        
+        // 检查密码强度
+        function checkPasswordStrength(password) {
+            if (!password) return { strength: 0, message: '' };
+            
+            let strength = 0;
+            let message = '';
+            
+            // 长度检查
+            if (password.length >= 6) strength += 1;
+            if (password.length >= 8) strength += 1;
+            
+            // 包含小写字母
+            if (/[a-z]/.test(password)) strength += 1;
+            
+            // 包含大写字母
+            if (/[A-Z]/.test(password)) strength += 1;
+            
+            // 包含数字
+            if (/[0-9]/.test(password)) strength += 1;
+            
+            // 包含特殊字符
+            if (/[^a-zA-Z0-9]/.test(password)) strength += 1;
+            
+            // 根据强度评分返回结果
+            if (strength <= 2) {
+                return { strength: 1, message: '弱' };
+            } else if (strength <= 4) {
+                return { strength: 2, message: '中' };
+            } else {
+                return { strength: 3, message: '强' };
+            }
+        }
+        
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             const loginSection = document.getElementById('loginSection');
             const registerSection = document.getElementById('registerSection');
@@ -235,17 +382,173 @@
             const registerBtn = document.getElementById('registerBtn');
             const message = document.getElementById('message');
             
+            // 注册表单相关元素
+            const registerUsername = document.getElementById('registerUsername');
+            const registerEmail = document.getElementById('registerEmail');
+            const registerPassword = document.getElementById('registerPassword');
+            const confirmPassword = document.getElementById('confirmPassword');
+            const usernameCheckResult = document.getElementById('usernameCheckResult');
+            const passwordStrength = document.getElementById('passwordStrength');
+            const usernameIcon = document.getElementById('usernameIcon');
+            
+            // 用户名可用性状态
+            let isUsernameAvailable = false;
+            let isCheckingUsername = false;
+            
             // 切换表单显示
             showRegisterBtn.addEventListener('click', function() {
                 loginSection.classList.remove('active');
                 registerSection.classList.add('active');
                 message.style.display = 'none';
+                resetRegisterForm();
             });
             
             showLoginBtn.addEventListener('click', function() {
                 registerSection.classList.remove('active');
                 loginSection.classList.add('active');
                 message.style.display = 'none';
+                resetRegisterForm();
+            });
+            
+            // 重置注册表单
+            function resetRegisterForm() {
+                registerUsername.value = '';
+                registerEmail.value = '';
+                registerPassword.value = '';
+                confirmPassword.value = '';
+                usernameCheckResult.textContent = '';
+                usernameCheckResult.className = 'username-check';
+                usernameCheckResult.style.display = 'none';
+                passwordStrength.textContent = '';
+                passwordStrength.className = 'password-strength';
+                usernameIcon.style.display = 'none';
+                isUsernameAvailable = false;
+                updateRegisterButtonState();
+            }
+            
+            // 更新注册按钮状态
+            function updateRegisterButtonState() {
+                const username = registerUsername.value.trim();
+                const email = registerEmail.value.trim();
+                const password = registerPassword.value.trim();
+                const confirmPwd = confirmPassword.value.trim();
+                
+                const isFormValid = username && 
+                                  email && 
+                                  password && 
+                                  confirmPwd && 
+                                  password === confirmPwd && 
+                                  isUsernameAvailable &&
+                                  password.length >= 6 &&
+                                  validateEmail(email);
+                
+                registerBtn.disabled = !isFormValid;
+            }
+            
+            // 用户名输入事件 - 使用防抖
+            const debouncedCheckUsername = debounce(async function() {
+                const username = registerUsername.value.trim();
+                
+                if (username.length < 3) {
+                    usernameCheckResult.textContent = '用户名至少需要3个字符';
+                    usernameCheckResult.className = 'username-check taken';
+                    usernameCheckResult.style.display = 'block';
+                    usernameIcon.textContent = '❌';
+                    usernameIcon.className = 'input-icon taken';
+                    usernameIcon.style.display = 'block';
+                    isUsernameAvailable = false;
+                    updateRegisterButtonState();
+                    return;
+                }
+                
+                // 显示检查中状态
+                isCheckingUsername = true;
+                usernameCheckResult.textContent = '检查用户名中...';
+                usernameCheckResult.className = 'username-check checking';
+                usernameCheckResult.style.display = 'block';
+                usernameIcon.textContent = '⏳';
+                usernameIcon.className = 'input-icon checking';
+                usernameIcon.style.display = 'block';
+                
+                try {
+                    const result = await checkUsernameAvailability(username);
+                    
+                    usernameCheckResult.textContent = result.message;
+                    usernameCheckResult.className = result.available ? 
+                        'username-check available' : 'username-check taken';
+                    usernameCheckResult.style.display = 'block';
+                    
+                    usernameIcon.textContent = result.available ? '✅' : '❌';
+                    usernameIcon.className = result.available ? 
+                        'input-icon available' : 'input-icon taken';
+                    usernameIcon.style.display = 'block';
+                    
+                    isUsernameAvailable = result.available;
+                    
+                } catch (error) {
+                    usernameCheckResult.textContent = '检查用户名时出错';
+                    usernameCheckResult.className = 'username-check taken';
+                    usernameCheckResult.style.display = 'block';
+                    usernameIcon.textContent = '❌';
+                    usernameIcon.className = 'input-icon taken';
+                    usernameIcon.style.display = 'block';
+                    isUsernameAvailable = false;
+                } finally {
+                    isCheckingUsername = false;
+                    updateRegisterButtonState();
+                }
+            }, 500);
+            
+            registerUsername.addEventListener('input', function() {
+                const username = this.value.trim();
+                
+                if (username.length === 0) {
+                    usernameCheckResult.style.display = 'none';
+                    usernameIcon.style.display = 'none';
+                    isUsernameAvailable = false;
+                } else if (username.length < 3) {
+                    usernameCheckResult.textContent = '用户名至少需要3个字符';
+                    usernameCheckResult.className = 'username-check taken';
+                    usernameCheckResult.style.display = 'block';
+                    usernameIcon.textContent = '❌';
+                    usernameIcon.className = 'input-icon taken';
+                    usernameIcon.style.display = 'block';
+                    isUsernameAvailable = false;
+                } else {
+                    // 使用防抖函数检查用户名
+                    debouncedCheckUsername();
+                }
+                
+                updateRegisterButtonState();
+            });
+            
+            // 密码强度检查
+            registerPassword.addEventListener('input', function() {
+                const password = this.value;
+                const strengthResult = checkPasswordStrength(password);
+                
+                if (password.length === 0) {
+                    passwordStrength.textContent = '';
+                    passwordStrength.className = 'password-strength';
+                } else {
+                    passwordStrength.textContent = `密码强度: ${strengthResult.message}`;
+                    passwordStrength.className = `password-strength ${
+                        strengthResult.strength === 1 ? 'weak' : 
+                        strengthResult.strength === 2 ? 'medium' : 'strong'
+                    }`;
+                }
+                
+                updateRegisterButtonState();
+            });
+            
+            // 确认密码检查
+            confirmPassword.addEventListener('input', function() {
+                updateRegisterButtonState();
+            });
+            
+            // 邮箱输入检查
+            registerEmail.addEventListener('input', function() {
+                updateRegisterButtonState();
             });
             
             // 登录功能
@@ -303,13 +606,13 @@
             
             // 注册功能
             registerBtn.addEventListener('click', async function() {
-                const username = document.getElementById('registerUsername').value.trim();
-                const email = document.getElementById('registerEmail').value.trim();
-                const password = document.getElementById('registerPassword').value.trim();
-                const confirmPassword = document.getElementById('confirmPassword').value.trim();
+                const username = registerUsername.value.trim();
+                const email = registerEmail.value.trim();
+                const password = registerPassword.value.trim();
+                const confirmPwd = confirmPassword.value.trim();
                 
                 // 验证输入
-                if (!username || !email || !password || !confirmPassword) {
+                if (!username || !email || !password || !confirmPwd) {
                     showMessage('请填写所有字段', 'error');
                     return;
                 }
@@ -324,7 +627,7 @@
                     return;
                 }
                 
-                if (password !== confirmPassword) {
+                if (password !== confirmPwd) {
                     showMessage('两次输入的密码不一致', 'error');
                     return;
                 }
@@ -334,9 +637,21 @@
                     return;
                 }
                 
+                if (!isUsernameAvailable) {
+                    showMessage('请检查用户名是否可用', 'error');
+                    return;
+                }
+                
                 try {
                     // 获取客户端IP
                     const ipAddress = await getClientIP();
+                    
+                    // 再次检查用户名是否可用（防止并发注册）
+                    const usernameCheck = await checkUsernameAvailability(username);
+                    if (!usernameCheck.available) {
+                        showMessage('用户名已被使用，请选择其他用户名', 'error');
+                        return;
+                    }
                     
                     // 检查IP是否已经注册过
                     const { data: existingIP, error: ipCheckError } = await supabase
@@ -347,18 +662,6 @@
                     
                     if (existingIP) {
                         showMessage('该IP地址已经注册过账户，每个IP只能注册一个账户', 'error');
-                        return;
-                    }
-                    
-                    // 检查用户名是否已存在
-                    const { data: existingUser, error: userCheckError } = await supabase
-                        .from('users')
-                        .select('id')
-                        .eq('username', username)
-                        .single();
-                    
-                    if (existingUser) {
-                        showMessage('用户名已存在', 'error');
                         return;
                     }
                     
@@ -411,7 +714,17 @@
                     
                 } catch (error) {
                     console.error('注册失败:', error);
-                    showMessage('注册失败，请稍后重试', 'error');
+                    if (error.code === '23505') { // 唯一约束违反
+                        if (error.message.includes('username')) {
+                            showMessage('用户名已被使用，请选择其他用户名', 'error');
+                        } else if (error.message.includes('email')) {
+                            showMessage('邮箱已被注册', 'error');
+                        } else {
+                            showMessage('注册失败，请稍后重试', 'error');
+                        }
+                    } else {
+                        showMessage('注册失败，请稍后重试', 'error');
+                    }
                 }
             });
             
@@ -434,7 +747,9 @@
                     if (loginSection.classList.contains('active')) {
                         loginBtn.click();
                     } else {
-                        registerBtn.click();
+                        if (!registerBtn.disabled) {
+                            registerBtn.click();
+                        }
                     }
                 }
             });
