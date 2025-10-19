@@ -118,6 +118,18 @@
             border-radius: 15px;
             margin-bottom: 20px;
             border-left: 4px solid #9C27B0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .post:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .post.announcement {
+            border-left: 4px solid #ffcc00;
+            background: rgba(255, 204, 0, 0.1);
         }
         
         .post-header {
@@ -127,16 +139,143 @@
             color: #ffcc00;
         }
         
-        .post-content {
-            line-height: 1.6;
+        .announcement-badge {
+            background: #ffcc00;
+            color: #333;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
         }
         
-        .post-meta {
+        .post-content {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .post-actions {
             display: flex;
             justify-content: space-between;
-            margin-top: 10px;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .vote-section {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .vote-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .vote-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .vote-btn.active.like-btn {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4CAF50;
+        }
+        
+        .vote-btn.active.dislike-btn {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: #f44336;
+        }
+        
+        .action-section {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
             font-size: 0.9rem;
-            opacity: 0.8;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .comments-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .comment-form {
+            margin-bottom: 20px;
+        }
+        
+        .comment-input {
+            width: 100%;
+            height: 80px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        
+        .submit-comment {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .submit-comment:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(156, 39, 176, 0.4);
+        }
+        
+        .comment {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 3px solid #9C27B0;
+        }
+        
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #ffcc00;
+        }
+        
+        .comment-content {
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        
+        .comment-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .user-info {
@@ -199,9 +338,269 @@
             border: 1px solid rgba(244, 67, 54, 0.5);
         }
         
+        /* 通知系统样式 */
+        .notification-container {
+            position: relative;
+            display: inline-block;
+            margin-right: 15px;
+        }
+        
+        .notification-bell {
+            font-size: 1.5rem;
+            cursor: pointer;
+            position: relative;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+        
+        .notification-bell:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 350px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .notification-header h3 {
+            margin: 0;
+            color: #ffcc00;
+        }
+        
+        .notification-header button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .notification-header button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .notification-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .notification-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .notification-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .notification-item.unread {
+            background-color: rgba(255, 204, 0, 0.1);
+            border-left: 3px solid #ffcc00;
+        }
+        
+        .notification-item.read {
+            opacity: 0.7;
+        }
+        
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #ffcc00;
+        }
+        
+        .notification-content {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .notification-time {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        .notification-empty {
+            padding: 20px;
+            text-align: center;
+            opacity: 0.7;
+        }
+        
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1002;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            color: #ffcc00;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ffcc00;
+        }
+        
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            resize: vertical;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .btn-secondary {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-primary {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(156, 39, 176, 0.4);
+        }
+        
+        /* 帖子详情视图 */
+        .post-detail-view {
+            display: none;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .post-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .back-to-list {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #ff5252, #ff4081);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .back-to-list:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(255, 82, 82, 0.4);
+        }
+        
         @media (max-width: 768px) {
             .forum-content {
                 grid-template-columns: 1fr;
+            }
+            
+            .notification-dropdown {
+                width: 300px;
+                right: -50px;
             }
         }
     </style>
@@ -212,44 +611,68 @@
 <body>
     <div class="container">
         <header>
-            <h1>Forum v1.1.0</h1>
-            <p>by std114514</p>
+            <h1>论坛交流</h1>
+            <p>与其他用户交流讨论，分享使用心得</p>
             <button class="back-btn" onclick="window.location.href='/'">返回首页</button>
         </header>
         
+        <!-- 用户信息区域 -->
+        <div class="user-info" id="userInfo">
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    🔔
+                    <span class="notification-badge" id="notificationBadge" style="display: none">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">
+                        <h3>通知</h3>
+                        <button id="markAllRead">全部已读</button>
+                    </div>
+                    <div class="notification-list" id="notificationList">
+                        <div class="notification-empty">暂无通知</div>
+                    </div>
+                </div>
+            </div>
+            <span id="userStatus">未登录</span>
+            <button class="login-btn" id="loginBtn">登录/注册</button>
+        </div>
+        
         <div class="forum-content">
             <div>
-                <!-- 发帖区域 -->
-                <div class="new-post-section" id="newPostSection" style="display: none;">
-                    <h3>发表新帖子</h3>
-                    <form class="post-form" id="postForm">
-                        <textarea id="postContent" placeholder="分享您的想法..."></textarea>
-                        <button type="submit">发布</button>
-                    </form>
-                </div>
-                
-                <div class="login-prompt" id="loginPrompt">
-                    <h3>请先登录</h3>
-                    <p>登录后可以查看和发布帖子</p>
-                    <button class="login-btn" onclick="window.location.href='/auth/index.html'">立即登录</button>
-                </div>
-                
-                <!-- 帖子列表 -->
-                <div class="posts-section">
-                    <h3>最新帖子</h3>
-                    <div id="postsList">
-                        <div class="post">
-                            <div class="post-header">
-                                <span>std114514</span>
-                                <span>2025-01-01</span>
-                            </div>
-                            <div class="post-content">
-                                欢迎来到 BBS！
-                            </div>
-                            <div class="post-meta">
-                                <span>#公告</span>
-                            </div>
+                <!-- 帖子列表视图 -->
+                <div id="postsListView">
+                    <!-- 发帖区域 -->
+                    <div class="new-post-section" id="newPostSection" style="display: none;">
+                        <h3>发表新帖子</h3>
+                        <form class="post-form" id="postForm">
+                            <textarea id="postContent" placeholder="分享你的想法..."></textarea>
+                            <button type="submit">发布</button>
+                        </form>
+                    </div>
+                    
+                    <div class="login-prompt" id="loginPrompt">
+                        <h3>请先登录</h3>
+                        <p>登录后可以查看和发布帖子</p>
+                        <button class="login-btn" onclick="window.location.href='/auth/'">立即登录</button>
+                    </div>
+                    
+                    <!-- 帖子列表 -->
+                    <div class="posts-section">
+                        <h3>最新帖子</h3>
+                        <div id="postsList">
+                            <!-- 帖子将通过JS动态加载 -->
                         </div>
+                    </div>
+                </div>
+                
+                <!-- 帖子详情视图 -->
+                <div class="post-detail-view" id="postDetailView">
+                    <div class="post-detail-header">
+                        <h3>帖子详情</h3>
+                        <button class="back-to-list" id="backToList">返回列表</button>
+                    </div>
+                    <div id="postDetailContent">
+                        <!-- 帖子详情内容将通过JS动态加载 -->
                     </div>
                 </div>
             </div>
@@ -260,12 +683,34 @@
                     请先登录
                 </div>
                 <div id="userActions">
-                    <button class="login-btn" onclick="window.location.href='/auth/index.html'">登录/注册</button>
+                    <button class="login-btn" onclick="window.location.href='/auth/'">登录/注册</button>
                 </div>
             </div>
         </div>
         
         <div class="message" id="message"></div>
+    </div>
+
+    <!-- 举报弹窗 -->
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>举报内容</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="reportTargetId">
+                <input type="hidden" id="reportTargetType">
+                <div class="form-group">
+                    <label>举报原因</label>
+                    <textarea id="reportReason" placeholder="请详细描述举报原因..." rows="4"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancelReport">取消</button>
+                <button class="btn-primary" id="submitReport">提交举报</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -275,6 +720,9 @@
         
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
+        // 当前查看的帖子ID
+        let currentPostId = null;
+        
         document.addEventListener('DOMContentLoaded', function() {
             const newPostSection = document.getElementById('newPostSection');
             const loginPrompt = document.getElementById('loginPrompt');
@@ -283,6 +731,25 @@
             const postForm = document.getElementById('postForm');
             const postsList = document.getElementById('postsList');
             const message = document.getElementById('message');
+            const postsListView = document.getElementById('postsListView');
+            const postDetailView = document.getElementById('postDetailView');
+            const backToList = document.getElementById('backToList');
+            const postDetailContent = document.getElementById('postDetailContent');
+            
+            // 举报相关元素
+            const reportModal = document.getElementById('reportModal');
+            const cancelReport = document.getElementById('cancelReport');
+            const submitReport = document.getElementById('submitReport');
+            const reportReason = document.getElementById('reportReason');
+            const reportTargetId = document.getElementById('reportTargetId');
+            const reportTargetType = document.getElementById('reportTargetType');
+            
+            // 通知相关元素
+            const notificationBell = document.getElementById('notificationBell');
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            const notificationList = document.getElementById('notificationList');
+            const notificationBadge = document.getElementById('notificationBadge');
+            const markAllRead = document.getElementById('markAllRead');
             
             // 检查登录状态
             function checkAuthStatus() {
@@ -296,11 +763,12 @@
                     newPostSection.style.display = 'block';
                     loginPrompt.style.display = 'none';
                     loadPosts();
+                    loadNotifications();
                     return user;
                 } else {
                     userWelcome.textContent = '请先登录';
                     userActions.innerHTML = `
-                        <button class="login-btn" onclick="window.location.href='/auth/index.html'">登录/注册</button>
+                        <button class="login-btn" onclick="window.location.href='/auth/'">登录/注册</button>
                     `;
                     newPostSection.style.display = 'none';
                     loginPrompt.style.display = 'block';
@@ -314,55 +782,371 @@
                 checkAuthStatus();
             }
             
-            // 加载帖子
+            // 加载帖子列表
             async function loadPosts() {
                 try {
                     const { data, error } = await supabase
                         .from('posts')
                         .select(`
                             *,
-                            users:user_id (username)
+                            users:user_id (username),
+                            post_votes!left(vote_type)
                         `)
                         .order('created_at', { ascending: false })
                         .limit(50);
                     
                     if (error) throw error;
                     
-                    postsList.innerHTML = '';
-                    
-                    if (data && data.length > 0) {
-                        data.forEach(post => {
-                            const postElement = document.createElement('div');
-                            postElement.className = 'post';
-                            postElement.innerHTML = `
-                                <div class="post-header">
-                                    <span>${post.users.username}</span>
-                                    <span>${formatDate(post.created_at)}</span>
-                                </div>
-                                <div class="post-content">${post.content}</div>
-                                <div class="post-meta">
-                                    <span>#${post.id}</span>
-                                </div>
-                            `;
-                            postsList.appendChild(postElement);
-                        });
-                    } else {
-                        postsList.innerHTML = '<div class="post"><div class="post-content">暂无帖子，快来发表第一个帖子吧！</div></div>';
-                    }
+                    renderPosts(data || []);
                 } catch (error) {
                     console.error('加载帖子失败:', error);
                     postsList.innerHTML = '<div class="post"><div class="post-content">加载帖子失败，请刷新页面重试</div></div>';
                 }
             }
             
-            // 格式化日期
-            function formatDate(dateString) {
-                const date = new Date(dateString);
-                return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', {
-                    hour: '2-digit',
-                    minute: '2-digit'
+            // 渲染帖子列表
+            function renderPosts(posts) {
+                const user = checkAuthStatus();
+                
+                if (!posts || posts.length === 0) {
+                    postsList.innerHTML = '<div class="post"><div class="post-content">暂无帖子，快来发表第一个帖子吧！</div></div>';
+                    return;
+                }
+                
+                // 分离公告和普通帖子
+                const announcements = posts.filter(post => post.is_announcement);
+                const normalPosts = posts.filter(post => !post.is_announcement);
+                
+                // 合并并排序（公告在前）
+                const sortedPosts = [...announcements, ...normalPosts];
+                
+                postsList.innerHTML = sortedPosts.map(post => {
+                    // 获取当前用户的投票状态
+                    const userVote = user ? post.post_votes?.find(vote => vote.user_id === user.id) : null;
+                    
+                    return `
+                        <div class="post ${post.is_announcement ? 'announcement' : ''}" data-post-id="${post.id}">
+                            <div class="post-header">
+                                <span class="post-author">${post.users.username}</span>
+                                <span class="post-date">${formatDate(post.created_at)}</span>
+                                ${post.is_announcement ? '<span class="announcement-badge">公告</span>' : ''}
+                            </div>
+                            <div class="post-content">${post.content}</div>
+                            
+                            <!-- 帖子操作区域 -->
+                            <div class="post-actions">
+                                <div class="vote-section">
+                                    <button class="vote-btn like-btn ${userVote && userVote.vote_type === 1 ? 'active' : ''}" 
+                                            data-post-id="${post.id}" data-vote-type="1">
+                                        👍 <span class="like-count">${post.likes || 0}</span>
+                                    </button>
+                                    <button class="vote-btn dislike-btn ${userVote && userVote.vote_type === -1 ? 'active' : ''}" 
+                                            data-post-id="${post.id}" data-vote-type="-1">
+                                        👎 <span class="dislike-count">${post.dislikes || 0}</span>
+                                    </button>
+                                </div>
+                                
+                                <div class="action-section">
+                                    <button class="action-btn comment-btn" data-post-id="${post.id}">
+                                        💬 评论 (${post.comment_count || 0})
+                                    </button>
+                                    <button class="action-btn report-btn" data-post-id="${post.id}" data-type="post">
+                                        ⚠️ 举报
+                                    </button>
+                                    
+                                    <!-- 管理员功能 -->
+                                    ${user && user.username === 'std114514' ? `
+                                        <button class="action-btn delete-btn" data-post-id="${post.id}" data-type="post">
+                                            🗑️ 删除
+                                        </button>
+                                        <button class="action-btn announcement-btn" data-post-id="${post.id}">
+                                            ${post.is_announcement ? '📢 取消公告' : '📢 设为公告'}
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // 绑定帖子点击事件
+                document.querySelectorAll('.post').forEach(post => {
+                    post.addEventListener('click', function(e) {
+                        // 如果点击的是按钮，不触发帖子详情查看
+                        if (e.target.tagName === 'BUTTON') return;
+                        
+                        const postId = this.dataset.postId;
+                        showPostDetail(postId);
+                    });
+                });
+                
+                // 绑定投票按钮事件
+                document.querySelectorAll('.vote-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const postId = this.dataset.postId;
+                        const voteType = parseInt(this.dataset.voteType);
+                        handlePostVote(postId, voteType);
+                    });
+                });
+                
+                // 绑定评论按钮事件
+                document.querySelectorAll('.comment-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const postId = this.dataset.postId;
+                        showPostDetail(postId);
+                    });
+                });
+                
+                // 绑定举报按钮事件
+                document.querySelectorAll('.report-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const targetId = this.dataset.postId;
+                        const targetType = this.dataset.type;
+                        showReportModal(targetId, targetType);
+                    });
+                });
+                
+                // 绑定管理员删除按钮事件
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const targetId = this.dataset.postId;
+                        const targetType = this.dataset.type;
+                        deletePost(targetId);
+                    });
+                });
+                
+                // 绑定管理员公告按钮事件
+                document.querySelectorAll('.announcement-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const postId = this.dataset.postId;
+                        toggleAnnouncement(postId);
+                    });
                 });
             }
+            
+            // 显示帖子详情
+            async function showPostDetail(postId) {
+                currentPostId = postId;
+                
+                try {
+                    // 获取帖子详情
+                    const { data: post, error: postError } = await supabase
+                        .from('posts')
+                        .select(`
+                            *,
+                            users:user_id (username),
+                            post_votes!left(vote_type)
+                        `)
+                        .eq('id', postId)
+                        .single();
+                    
+                    if (postError) throw postError;
+                    
+                    // 获取评论
+                    const { data: comments, error: commentsError } = await supabase
+                        .from('comments')
+                        .select(`
+                            *,
+                            users:user_id (username),
+                            comment_votes!left(vote_type)
+                        `)
+                        .eq('post_id', postId)
+                        .order('created_at', { ascending: true });
+                    
+                    if (commentsError) throw commentsError;
+                    
+                    const user = checkAuthStatus();
+                    const userVote = user ? post.post_votes?.find(vote => vote.user_id === user.id) : null;
+                    
+                    // 渲染帖子详情
+                    postDetailContent.innerHTML = `
+                        <div class="post ${post.is_announcement ? 'announcement' : ''}">
+                            <div class="post-header">
+                                <span class="post-author">${post.users.username}</span>
+                                <span class="post-date">${formatDate(post.created_at)}</span>
+                                ${post.is_announcement ? '<span class="announcement-badge">公告</span>' : ''}
+                            </div>
+                            <div class="post-content">${post.content}</div>
+                            
+                            <!-- 帖子操作区域 -->
+                            <div class="post-actions">
+                                <div class="vote-section">
+                                    <button class="vote-btn like-btn ${userVote && userVote.vote_type === 1 ? 'active' : ''}" 
+                                            data-post-id="${post.id}" data-vote-type="1">
+                                        👍 <span class="like-count">${post.likes || 0}</span>
+                                    </button>
+                                    <button class="vote-btn dislike-btn ${userVote && userVote.vote_type === -1 ? 'active' : ''}" 
+                                            data-post-id="${post.id}" data-vote-type="-1">
+                                        👎 <span class="dislike-count">${post.dislikes || 0}</span>
+                                    </button>
+                                </div>
+                                
+                                <div class="action-section">
+                                    <button class="action-btn report-btn" data-post-id="${post.id}" data-type="post">
+                                        ⚠️ 举报
+                                    </button>
+                                    
+                                    <!-- 管理员功能 -->
+                                    ${user && user.username === 'std114514' ? `
+                                        <button class="action-btn delete-btn" data-post-id="${post.id}" data-type="post">
+                                            🗑️ 删除
+                                        </button>
+                                        <button class="action-btn announcement-btn" data-post-id="${post.id}">
+                                            ${post.is_announcement ? '📢 取消公告' : '📢 设为公告'}
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 评论区域 -->
+                        <div class="comments-section">
+                            <h3>评论 (${comments ? comments.length : 0})</h3>
+                            
+                            <!-- 评论表单 -->
+                            <div class="comment-form">
+                                <textarea class="comment-input" id="detailCommentInput" placeholder="写下你的评论..."></textarea>
+                                <button class="submit-comment" id="detailSubmitComment" data-post-id="${post.id}">发布评论</button>
+                            </div>
+                            
+                            <!-- 评论列表 -->
+                            <div class="comments-list" id="detailCommentsList">
+                                ${comments && comments.length > 0 ? 
+                                    comments.map(comment => {
+                                        const commentUserVote = user ? comment.comment_votes?.find(vote => vote.user_id === user.id) : null;
+                                        
+                                        return `
+                                            <div class="comment" data-comment-id="${comment.id}">
+                                                <div class="comment-header">
+                                                    <span class="comment-author">${comment.users.username}</span>
+                                                    <span class="comment-date">${formatDate(comment.created_at)}</span>
+                                                </div>
+                                                <div class="comment-content">${comment.content}</div>
+                                                <div class="comment-actions">
+                                                    <div class="vote-section">
+                                                        <button class="vote-btn like-btn ${commentUserVote && commentUserVote.vote_type === 1 ? 'active' : ''}" 
+                                                                data-comment-id="${comment.id}" data-vote-type="1">
+                                                            👍 <span class="like-count">${comment.likes || 0}</span>
+                                                        </button>
+                                                        <button class="vote-btn dislike-btn ${commentUserVote && commentUserVote.vote_type === -1 ? 'active' : ''}" 
+                                                                data-comment-id="${comment.id}" data-vote-type="-1">
+                                                            👎 <span class="dislike-count">${comment.dislikes || 0}</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="action-section">
+                                                        <button class="action-btn report-btn" data-comment-id="${comment.id}" data-type="comment">
+                                                            ⚠️ 举报
+                                                        </button>
+                                                        ${user && user.username === 'std114514' ? `
+                                                            <button class="action-btn delete-btn" data-comment-id="${comment.id}" data-type="comment">
+                                                                🗑️ 删除
+                                                            </button>
+                                                        ` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('') : 
+                                    '<div class="comment"><div class="comment-content">暂无评论，快来发表第一条评论吧！</div></div>'
+                                }
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 绑定详情页的事件
+                    bindDetailPageEvents();
+                    
+                    // 切换到详情视图
+                    postsListView.style.display = 'none';
+                    postDetailView.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('加载帖子详情失败:', error);
+                    showMessage('加载帖子详情失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 绑定详情页的事件
+            function bindDetailPageEvents() {
+                // 绑定投票按钮事件
+                document.querySelectorAll('#postDetailContent .vote-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (this.dataset.postId) {
+                            const postId = this.dataset.postId;
+                            const voteType = parseInt(this.dataset.voteType);
+                            handlePostVote(postId, voteType);
+                        } else if (this.dataset.commentId) {
+                            const commentId = this.dataset.commentId;
+                            const voteType = parseInt(this.dataset.voteType);
+                            handleCommentVote(commentId, voteType);
+                        }
+                    });
+                });
+                
+                // 绑定举报按钮事件
+                document.querySelectorAll('#postDetailContent .report-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const targetId = this.dataset.postId || this.dataset.commentId;
+                        const targetType = this.dataset.type;
+                        showReportModal(targetId, targetType);
+                    });
+                });
+                
+                // 绑定管理员删除按钮事件
+                document.querySelectorAll('#postDetailContent .delete-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (this.dataset.postId) {
+                            const postId = this.dataset.postId;
+                            deletePost(postId);
+                        } else if (this.dataset.commentId) {
+                            const commentId = this.dataset.commentId;
+                            const targetType = this.dataset.type;
+                            deleteComment(commentId);
+                        }
+                    });
+                });
+                
+                // 绑定管理员公告按钮事件
+                document.querySelectorAll('#postDetailContent .announcement-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const postId = this.dataset.postId;
+                        toggleAnnouncement(postId);
+                    });
+                });
+                
+                // 绑定评论提交事件
+                const detailSubmitComment = document.getElementById('detailSubmitComment');
+                const detailCommentInput = document.getElementById('detailCommentInput');
+                
+                if (detailSubmitComment) {
+                    detailSubmitComment.addEventListener('click', function() {
+                        const content = detailCommentInput.value.trim();
+                        if (!content) {
+                            showMessage('请输入评论内容', 'error');
+                            return;
+                        }
+                        
+                        submitComment(currentPostId, content);
+                    });
+                }
+            }
+            
+            // 返回帖子列表
+            backToList.addEventListener('click', function() {
+                postsListView.style.display = 'block';
+                postDetailView.style.display = 'none';
+                currentPostId = null;
+                loadPosts(); // 刷新帖子列表
+            });
             
             // 发布帖子
             postForm.addEventListener('submit', async function(e) {
@@ -380,8 +1164,8 @@
                     return;
                 }
                 
-                if (content.length > 1217) {
-                    showMessage('帖子内容不能超过1217字', 'error');
+                if (content.length > 1000) {
+                    showMessage('帖子内容不能超过1000字', 'error');
                     return;
                 }
                 
@@ -407,6 +1191,631 @@
                 }
             });
             
+            // 提交评论
+            async function submitComment(postId, content) {
+                const user = checkAuthStatus();
+                if (!user) {
+                    showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                try {
+                    const { error } = await supabase
+                        .from('comments')
+                        .insert([
+                            {
+                                user_id: user.id,
+                                post_id: postId,
+                                content: content
+                            }
+                        ]);
+                    
+                    if (error) throw error;
+                    
+                    showMessage('评论发布成功', 'success');
+                    document.getElementById('detailCommentInput').value = '';
+                    
+                    // 刷新帖子详情
+                    showPostDetail(postId);
+                    
+                } catch (error) {
+                    console.error('发布评论失败:', error);
+                    showMessage('发布失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 处理帖子投票
+            async function handlePostVote(postId, voteType) {
+                const user = checkAuthStatus();
+                if (!user) {
+                    showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                try {
+                    // 检查是否已经投过票
+                    const { data: existingVote, error: checkError } = await supabase
+                        .from('post_votes')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .eq('post_id', postId)
+                        .single();
+                    
+                    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+                    
+                    if (existingVote) {
+                        if (existingVote.vote_type === voteType) {
+                            // 取消投票
+                            const { error: deleteError } = await supabase
+                                .from('post_votes')
+                                .delete()
+                                .eq('id', existingVote.id);
+                            
+                            if (deleteError) throw deleteError;
+                            
+                            // 更新帖子计数
+                            await updatePostVoteCount(postId, -voteType);
+                        } else {
+                            // 更改投票
+                            const { error: updateError } = await supabase
+                                .from('post_votes')
+                                .update({ vote_type: voteType })
+                                .eq('id', existingVote.id);
+                            
+                            if (updateError) throw updateError;
+                            
+                            // 更新帖子计数（从旧投票变为新投票）
+                            await updatePostVoteCount(postId, voteType * 2);
+                        }
+                    } else {
+                        // 新投票
+                        const { error: insertError } = await supabase
+                            .from('post_votes')
+                            .insert([{ user_id: user.id, post_id: postId, vote_type: voteType }]);
+                        
+                        if (insertError) throw insertError;
+                        
+                        // 更新帖子计数
+                        await updatePostVoteCount(postId, voteType);
+                    }
+                    
+                    // 刷新显示
+                    if (currentPostId) {
+                        showPostDetail(currentPostId);
+                    } else {
+                        loadPosts();
+                    }
+                    
+                } catch (error) {
+                    console.error('投票失败:', error);
+                    showMessage('投票失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 处理评论投票
+            async function handleCommentVote(commentId, voteType) {
+                const user = checkAuthStatus();
+                if (!user) {
+                    showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                try {
+                    // 检查是否已经投过票
+                    const { data: existingVote, error: checkError } = await supabase
+                        .from('comment_votes')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .eq('comment_id', commentId)
+                        .single();
+                    
+                    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+                    
+                    if (existingVote) {
+                        if (existingVote.vote_type === voteType) {
+                            // 取消投票
+                            const { error: deleteError } = await supabase
+                                .from('comment_votes')
+                                .delete()
+                                .eq('id', existingVote.id);
+                            
+                            if (deleteError) throw deleteError;
+                            
+                            // 更新评论计数
+                            await updateCommentVoteCount(commentId, -voteType);
+                        } else {
+                            // 更改投票
+                            const { error: updateError } = await supabase
+                                .from('comment_votes')
+                                .update({ vote_type: voteType })
+                                .eq('id', existingVote.id);
+                            
+                            if (updateError) throw updateError;
+                            
+                            // 更新评论计数（从旧投票变为新投票）
+                            await updateCommentVoteCount(commentId, voteType * 2);
+                        }
+                    } else {
+                        // 新投票
+                        const { error: insertError } = await supabase
+                            .from('comment_votes')
+                            .insert([{ user_id: user.id, comment_id: commentId, vote_type: voteType }]);
+                        
+                        if (insertError) throw insertError;
+                        
+                        // 更新评论计数
+                        await updateCommentVoteCount(commentId, voteType);
+                    }
+                    
+                    // 刷新帖子详情
+                    if (currentPostId) {
+                        showPostDetail(currentPostId);
+                    }
+                    
+                } catch (error) {
+                    console.error('投票失败:', error);
+                    showMessage('投票失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 更新帖子投票计数
+            async function updatePostVoteCount(postId, voteChange) {
+                try {
+                    // 获取当前帖子
+                    const { data: post, error: postError } = await supabase
+                        .from('posts')
+                        .select('likes, dislikes')
+                        .eq('id', postId)
+                        .single();
+                    
+                    if (postError) throw postError;
+                    
+                    let newLikes = post.likes || 0;
+                    let newDislikes = post.dislikes || 0;
+                    
+                    if (voteChange > 0) {
+                        newLikes += voteChange;
+                    } else {
+                        newDislikes += Math.abs(voteChange);
+                    }
+                    
+                    // 更新帖子
+                    const { error: updateError } = await supabase
+                        .from('posts')
+                        .update({ 
+                            likes: Math.max(0, newLikes),
+                            dislikes: Math.max(0, newDislikes)
+                        })
+                        .eq('id', postId);
+                    
+                    if (updateError) throw updateError;
+                    
+                } catch (error) {
+                    console.error('更新投票计数失败:', error);
+                    throw error;
+                }
+            }
+            
+            // 更新评论投票计数
+            async function updateCommentVoteCount(commentId, voteChange) {
+                try {
+                    // 获取当前评论
+                    const { data: comment, error: commentError } = await supabase
+                        .from('comments')
+                        .select('likes, dislikes')
+                        .eq('id', commentId)
+                        .single();
+                    
+                    if (commentError) throw commentError;
+                    
+                    let newLikes = comment.likes || 0;
+                    let newDislikes = comment.dislikes || 0;
+                    
+                    if (voteChange > 0) {
+                        newLikes += voteChange;
+                    } else {
+                        newDislikes += Math.abs(voteChange);
+                    }
+                    
+                    // 更新评论
+                    const { error: updateError } = await supabase
+                        .from('comments')
+                        .update({ 
+                            likes: Math.max(0, newLikes),
+                            dislikes: Math.max(0, newDislikes)
+                        })
+                        .eq('id', commentId);
+                    
+                    if (updateError) throw updateError;
+                    
+                } catch (error) {
+                    console.error('更新评论投票计数失败:', error);
+                    throw error;
+                }
+            }
+            
+            // 显示举报弹窗
+            function showReportModal(targetId, targetType) {
+                const user = checkAuthStatus();
+                if (!user) {
+                    showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                reportTargetId.value = targetId;
+                reportTargetType.value = targetType;
+                reportReason.value = '';
+                reportModal.style.display = 'flex';
+            }
+            
+            // 提交举报
+            submitReport.addEventListener('click', async function() {
+                const targetId = reportTargetId.value;
+                const targetType = reportTargetType.value;
+                const reason = reportReason.value.trim();
+                
+                if (!reason) {
+                    showMessage('请输入举报原因', 'error');
+                    return;
+                }
+                
+                try {
+                    const user = checkAuthStatus();
+                    
+                    // 创建举报记录
+                    const { data, error } = await supabase
+                        .from('reports')
+                        .insert([{
+                            reporter_id: user.id,
+                            target_type: targetType,
+                            target_id: targetId,
+                            reason: reason
+                        }])
+                        .select()
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    // 给管理员发送通知
+                    await sendReportNotificationToAdmin(data.id, targetType, targetId, user.username);
+                    
+                    // 给举报人发送通知
+                    await createNotification(user.id, 'report_submitted', '举报已提交', '您的举报已提交，我们会尽快处理。', data.id);
+                    
+                    showMessage('举报已提交，我们会尽快处理', 'success');
+                    reportModal.style.display = 'none';
+                    
+                } catch (error) {
+                    console.error('举报失败:', error);
+                    showMessage('举报失败，请稍后重试', 'error');
+                }
+            });
+            
+            // 给管理员发送举报通知
+            async function sendReportNotificationToAdmin(reportId, targetType, targetId, reporterName) {
+                try {
+                    // 获取管理员用户ID（std114514）
+                    const { data: admin, error: adminError } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('username', 'std114514')
+                        .single();
+                    
+                    if (adminError) throw adminError;
+                    
+                    const targetText = targetType === 'post' ? '帖子' : '评论';
+                    
+                    await createNotification(
+                        admin.id,
+                        'new_report',
+                        '新的举报',
+                        `用户 ${reporterName} 举报了一个${targetText}，请及时处理。`,
+                        reportId
+                    );
+                    
+                } catch (error) {
+                    console.error('发送管理员通知失败:', error);
+                }
+            }
+            
+            // 删除帖子（管理员功能）
+            async function deletePost(postId) {
+                const user = checkAuthStatus();
+                if (!user || user.username !== 'std114514') {
+                    showMessage('没有权限执行此操作', 'error');
+                    return;
+                }
+                
+                if (!confirm('确定要删除这个帖子吗？此操作不可撤销。')) {
+                    return;
+                }
+                
+                try {
+                    // 获取帖子作者信息
+                    const { data: post, error: postError } = await supabase
+                        .from('posts')
+                        .select('user_id, content')
+                        .eq('id', postId)
+                        .single();
+                    
+                    if (postError) throw postError;
+                    
+                    // 删除帖子
+                    const { error: deleteError } = await supabase
+                        .from('posts')
+                        .delete()
+                        .eq('id', postId);
+                    
+                    if (deleteError) throw deleteError;
+                    
+                    // 给帖子作者发送通知
+                    if (post.user_id !== user.id) {
+                        await createNotification(
+                            post.user_id,
+                            'post_deleted',
+                            '帖子被删除',
+                            '您发布的帖子因违反社区规定已被管理员删除。',
+                            postId
+                        );
+                    }
+                    
+                    showMessage('帖子已删除', 'success');
+                    
+                    // 刷新显示
+                    if (currentPostId === postId) {
+                        // 如果正在查看被删除的帖子，返回列表
+                        postsListView.style.display = 'block';
+                        postDetailView.style.display = 'none';
+                        currentPostId = null;
+                    }
+                    
+                    loadPosts(); // 刷新帖子列表
+                    
+                } catch (error) {
+                    console.error('删除帖子失败:', error);
+                    showMessage('删除失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 删除评论（管理员功能）
+            async function deleteComment(commentId) {
+                const user = checkAuthStatus();
+                if (!user || user.username !== 'std114514') {
+                    showMessage('没有权限执行此操作', 'error');
+                    return;
+                }
+                
+                if (!confirm('确定要删除这个评论吗？此操作不可撤销。')) {
+                    return;
+                }
+                
+                try {
+                    // 获取评论信息
+                    const { data: comment, error: commentError } = await supabase
+                        .from('comments')
+                        .select('user_id, content, post_id')
+                        .eq('id', commentId)
+                        .single();
+                    
+                    if (commentError) throw commentError;
+                    
+                    // 删除评论
+                    const { error: deleteError } = await supabase
+                        .from('comments')
+                        .delete()
+                        .eq('id', commentId);
+                    
+                    if (deleteError) throw deleteError;
+                    
+                    // 给评论作者发送通知
+                    if (comment.user_id !== user.id) {
+                        await createNotification(
+                            comment.user_id,
+                            'comment_deleted',
+                            '评论被删除',
+                            '您发布的评论因违反社区规定已被管理员删除。',
+                            commentId
+                        );
+                    }
+                    
+                    showMessage('评论已删除', 'success');
+                    
+                    // 刷新帖子详情
+                    if (currentPostId) {
+                        showPostDetail(currentPostId);
+                    }
+                    
+                } catch (error) {
+                    console.error('删除评论失败:', error);
+                    showMessage('删除失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 设置/取消公告（管理员功能）
+            async function toggleAnnouncement(postId) {
+                const user = checkAuthStatus();
+                if (!user || user.username !== 'std114514') {
+                    showMessage('没有权限执行此操作', 'error');
+                    return;
+                }
+                
+                try {
+                    // 获取当前状态
+                    const { data: post, error: postError } = await supabase
+                        .from('posts')
+                        .select('is_announcement')
+                        .eq('id', postId)
+                        .single();
+                    
+                    if (postError) throw postError;
+                    
+                    // 切换状态
+                    const { error: updateError } = await supabase
+                        .from('posts')
+                        .update({ is_announcement: !post.is_announcement })
+                        .eq('id', postId);
+                    
+                    if (updateError) throw updateError;
+                    
+                    showMessage(`已${!post.is_announcement ? '设为' : '取消'}公告`, 'success');
+                    
+                    // 刷新显示
+                    if (currentPostId) {
+                        showPostDetail(currentPostId);
+                    } else {
+                        loadPosts();
+                    }
+                    
+                } catch (error) {
+                    console.error('设置公告失败:', error);
+                    showMessage('操作失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 通知系统功能
+            // 加载通知
+            async function loadNotifications() {
+                const user = checkAuthStatus();
+                if (!user) return;
+                
+                try {
+                    const { data, error } = await supabase
+                        .from('notifications')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+                    
+                    if (error) throw error;
+                    
+                    renderNotifications(data || []);
+                    updateNotificationBadge(data || []);
+                } catch (error) {
+                    console.error('加载通知失败:', error);
+                }
+            }
+            
+            // 渲染通知
+            function renderNotifications(notifications) {
+                if (!notifications || notifications.length === 0) {
+                    notificationList.innerHTML = '<div class="notification-empty">暂无通知</div>';
+                    return;
+                }
+                
+                notificationList.innerHTML = notifications.map(notification => `
+                    <div class="notification-item ${notification.is_read ? 'read' : 'unread'}" 
+                         data-notification-id="${notification.id}">
+                        <div class="notification-title">${notification.title}</div>
+                        <div class="notification-content">${notification.content}</div>
+                        <div class="notification-time">${formatTimeAgo(notification.created_at)}</div>
+                    </div>
+                `).join('');
+                
+                // 添加点击事件
+                document.querySelectorAll('.notification-item').forEach(item => {
+                    item.addEventListener('click', async function() {
+                        const notificationId = this.dataset.notificationId;
+                        await markNotificationAsRead(notificationId);
+                        this.classList.remove('unread');
+                        this.classList.add('read');
+                        loadNotifications(); // 刷新通知列表
+                    });
+                });
+            }
+            
+            // 更新通知徽章
+            function updateNotificationBadge(notifications) {
+                const unreadCount = notifications.filter(n => !n.is_read).length;
+                
+                if (unreadCount > 0) {
+                    notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                    notificationBadge.style.display = 'flex';
+                } else {
+                    notificationBadge.style.display = 'none';
+                }
+            }
+            
+            // 标记通知为已读
+            async function markNotificationAsRead(notificationId) {
+                try {
+                    const { error } = await supabase
+                        .from('notifications')
+                        .update({ is_read: true })
+                        .eq('id', notificationId);
+                    
+                    if (error) throw error;
+                } catch (error) {
+                    console.error('标记通知已读失败:', error);
+                }
+            }
+            
+            // 标记所有通知为已读
+            async function markAllNotificationsAsRead() {
+                const user = checkAuthStatus();
+                if (!user) return;
+                
+                try {
+                    const { error } = await supabase
+                        .from('notifications')
+                        .update({ is_read: true })
+                        .eq('user_id', user.id)
+                        .eq('is_read', false);
+                    
+                    if (error) throw error;
+                    
+                    loadNotifications(); // 刷新通知列表
+                } catch (error) {
+                    console.error('标记所有通知已读失败:', error);
+                }
+            }
+            
+            // 创建通知
+            async function createNotification(userId, type, title, content, relatedId = null) {
+                try {
+                    const { error } = await supabase
+                        .from('notifications')
+                        .insert([{
+                            user_id: userId,
+                            type: type,
+                            title: title,
+                            content: content,
+                            related_id: relatedId
+                        }]);
+                    
+                    if (error) throw error;
+                    
+                } catch (error) {
+                    console.error('创建通知失败:', error);
+                }
+            }
+            
+            // 工具函数
+            // 格式化日期
+            function formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            
+            // 格式化时间（显示为"几分钟前"等）
+            function formatTimeAgo(dateString) {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                
+                if (diffMins < 1) return '刚刚';
+                if (diffMins < 60) return `${diffMins}分钟前`;
+                if (diffHours < 24) return `${diffHours}小时前`;
+                if (diffDays < 7) return `${diffDays}天前`;
+                
+                return date.toLocaleDateString('zh-CN');
+            }
+            
             // 显示消息
             function showMessage(text, type) {
                 message.textContent = text;
@@ -416,6 +1825,50 @@
                     message.style.display = 'none';
                 }, 3000);
             }
+            
+            // 事件绑定
+            // 通知铃铛点击事件
+            notificationBell.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const dropdown = document.getElementById('notificationDropdown');
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            });
+            
+            // 标记所有通知为已读
+            markAllRead.addEventListener('click', markAllNotificationsAsRead);
+            
+            // 点击页面其他地方关闭通知下拉框
+            document.addEventListener('click', function() {
+                notificationDropdown.style.display = 'none';
+            });
+            
+            // 举报弹窗事件
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    reportModal.style.display = 'none';
+                });
+            });
+            
+            cancelReport.addEventListener('click', function() {
+                reportModal.style.display = 'none';
+            });
+            
+            // 点击弹窗外部关闭弹窗
+            window.addEventListener('click', function(e) {
+                if (e.target === reportModal) {
+                    reportModal.style.display = 'none';
+                }
+            });
+            
+            // 登录按钮事件
+            document.getElementById('loginBtn').addEventListener('click', function() {
+                const user = checkAuthStatus();
+                if (user) {
+                    logout();
+                } else {
+                    window.location.href = '/auth/';
+                }
+            });
             
             // 初始化
             checkAuthStatus();
