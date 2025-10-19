@@ -603,39 +603,66 @@
                 right: -50px;
             }
         }
+
+        /* 顶部用户信息区域样式 */
+        .top-user-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .top-user-info .login-btn {
+            margin-top: 0;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+        
+        .welcome-text {
+            color: #ffcc00;
+            font-weight: bold;
+        }
     </style>
     
     <!-- 引入 Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>论坛交流</h1>
-            <p>与其他用户交流讨论，分享使用心得</p>
-            <button class="back-btn" onclick="window.location.href='/'">返回首页</button>
-        </header>
-        
-        <!-- 用户信息区域 -->
-        <div class="user-info" id="userInfo">
-            <div class="notification-container">
-                <div class="notification-bell" id="notificationBell">
-                    🔔
-                    <span class="notification-badge" id="notificationBadge" style="display: none">0</span>
+    <!-- 顶部用户信息区域 -->
+    <div class="top-user-info" id="topUserInfo">
+        <div class="notification-container">
+            <div class="notification-bell" id="notificationBell">
+                🔔
+                <span class="notification-badge" id="notificationBadge" style="display: none">0</span>
+            </div>
+            <div class="notification-dropdown" id="notificationDropdown">
+                <div class="notification-header">
+                    <h3>通知</h3>
+                    <button id="markAllRead">全部已读</button>
                 </div>
-                <div class="notification-dropdown" id="notificationDropdown">
-                    <div class="notification-header">
-                        <h3>通知</h3>
-                        <button id="markAllRead">全部已读</button>
-                    </div>
-                    <div class="notification-list" id="notificationList">
-                        <div class="notification-empty">暂无通知</div>
-                    </div>
+                <div class="notification-list" id="notificationList">
+                    <div class="notification-empty">暂无通知</div>
                 </div>
             </div>
-            <span id="userStatus">未登录</span>
-            <button class="login-btn" id="loginBtn">登录/注册</button>
         </div>
+        <span id="userStatus">未登录</span>
+        <button class="login-btn" id="topLoginBtn">登录/注册</button>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Discuss Forum v1.1.0</h1>
+            <p>by std114514</p>
+            <button class="back-btn" onclick="window.location.href='/'">返回首页</button>
+        </header>
         
         <div class="forum-content">
             <div>
@@ -645,7 +672,7 @@
                     <div class="new-post-section" id="newPostSection" style="display: none;">
                         <h3>发表新帖子</h3>
                         <form class="post-form" id="postForm">
-                            <textarea id="postContent" placeholder="分享你的想法..."></textarea>
+                            <textarea id="postContent" placeholder="分享您的想法..."></textarea>
                             <button type="submit">发布</button>
                         </form>
                     </div>
@@ -723,6 +750,56 @@
         // 当前查看的帖子ID
         let currentPostId = null;
         
+        // 检查登录状态
+        function checkAuthStatus() {
+            const userData = localStorage.getItem('userData');
+            const userStatus = document.getElementById('userStatus');
+            const topLoginBtn = document.getElementById('topLoginBtn');
+            const userWelcome = document.getElementById('userWelcome');
+            const userActions = document.getElementById('userActions');
+            const newPostSection = document.getElementById('newPostSection');
+            const loginPrompt = document.getElementById('loginPrompt');
+            
+            if (userData) {
+                const user = JSON.parse(userData);
+                // 更新顶部用户信息区域
+                userStatus.innerHTML = `<span class="welcome-text">欢迎回来，${user.username}</span>`;
+                topLoginBtn.textContent = '退出登录';
+                
+                // 更新侧边栏用户信息
+                userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
+                userActions.innerHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
+                
+                // 显示发帖区域
+                newPostSection.style.display = 'block';
+                loginPrompt.style.display = 'none';
+                
+                return user;
+            } else {
+                // 更新顶部用户信息区域
+                userStatus.textContent = '未登录';
+                topLoginBtn.textContent = '登录/注册';
+                
+                // 更新侧边栏用户信息
+                userWelcome.textContent = '请先登录';
+                userActions.innerHTML = `<button class="login-btn" onclick="window.location.href='/auth/'">登录/注册</button>`;
+                
+                // 隐藏发帖区域
+                newPostSection.style.display = 'none';
+                loginPrompt.style.display = 'block';
+                
+                return null;
+            }
+        }
+        
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('userData');
+            checkAuthStatus();
+            // 刷新页面以更新状态
+            location.reload();
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             const newPostSection = document.getElementById('newPostSection');
             const loginPrompt = document.getElementById('loginPrompt');
@@ -751,36 +828,21 @@
             const notificationBadge = document.getElementById('notificationBadge');
             const markAllRead = document.getElementById('markAllRead');
             
-            // 检查登录状态
-            function checkAuthStatus() {
-                const userData = localStorage.getItem('userData');
-                if (userData) {
-                    const user = JSON.parse(userData);
-                    userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
-                    userActions.innerHTML = `
-                        <button class="login-btn" onclick="logout()">退出登录</button>
-                    `;
-                    newPostSection.style.display = 'block';
-                    loginPrompt.style.display = 'none';
-                    loadPosts();
-                    loadNotifications();
-                    return user;
-                } else {
-                    userWelcome.textContent = '请先登录';
-                    userActions.innerHTML = `
-                        <button class="login-btn" onclick="window.location.href='/auth/'">登录/注册</button>
-                    `;
-                    newPostSection.style.display = 'none';
-                    loginPrompt.style.display = 'block';
-                    return null;
-                }
-            }
+            // 顶部登录按钮
+            const topLoginBtn = document.getElementById('topLoginBtn');
             
-            // 退出登录
-            function logout() {
-                localStorage.removeItem('userData');
-                checkAuthStatus();
-            }
+            // 初始化登录状态
+            checkAuthStatus();
+            
+            // 绑定顶部登录按钮事件
+            topLoginBtn.addEventListener('click', function() {
+                const user = checkAuthStatus();
+                if (user) {
+                    logout();
+                } else {
+                    window.location.href = '/auth/';
+                }
+            });
             
             // 加载帖子列表
             async function loadPosts() {
@@ -790,7 +852,8 @@
                         .select(`
                             *,
                             users:user_id (username),
-                            post_votes!left(vote_type)
+                            post_votes!left(vote_type),
+                            comments:comments(count)
                         `)
                         .order('created_at', { ascending: false })
                         .limit(50);
@@ -823,6 +886,7 @@
                 postsList.innerHTML = sortedPosts.map(post => {
                     // 获取当前用户的投票状态
                     const userVote = user ? post.post_votes?.find(vote => vote.user_id === user.id) : null;
+                    const commentCount = post.comments?.[0]?.count || 0;
                     
                     return `
                         <div class="post ${post.is_announcement ? 'announcement' : ''}" data-post-id="${post.id}">
@@ -848,7 +912,7 @@
                                 
                                 <div class="action-section">
                                     <button class="action-btn comment-btn" data-post-id="${post.id}">
-                                        💬 评论 (${post.comment_count || 0})
+                                        💬 评论 (${commentCount})
                                     </button>
                                     <button class="action-btn report-btn" data-post-id="${post.id}" data-type="post">
                                         ⚠️ 举报
@@ -1860,18 +1924,10 @@
                 }
             });
             
-            // 登录按钮事件
-            document.getElementById('loginBtn').addEventListener('click', function() {
-                const user = checkAuthStatus();
-                if (user) {
-                    logout();
-                } else {
-                    window.location.href = '/auth/';
-                }
-            });
-            
             // 初始化
             checkAuthStatus();
+            loadPosts();
+            loadNotifications();
         });
     </script>
 </body>
