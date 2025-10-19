@@ -5,7 +5,183 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>std114514 的小站</title>
     <style>
-        /* 现有样式保持不变，添加以下新样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(45deg, #ffcc00, #ff6b00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.4rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .button-container {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .nav-button {
+            flex: 1;
+            min-width: 200px;
+            padding: 25px 30px;
+            border: none;
+            border-radius: 20px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.4s;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .nav-button:hover::before {
+            left: 100%;
+        }
+        
+        .nav-button:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+        
+        .nav-button:active {
+            transform: translateY(-2px);
+        }
+        
+        .rp-button {
+            background: linear-gradient(135deg, #ff5252, #ff4081);
+            color: white;
+        }
+        
+        .trans-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .button-icon {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .button-description {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: normal;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-card h3 {
+            color: #ffcc00;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .button-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .nav-button {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+        }
+        
+        .footer {
+            margin-top: 40px;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
         
         .user-info {
             position: fixed;
@@ -95,25 +271,25 @@
         </header>
         
         <div class="button-container">
-            <a href="/rp/index.html" class="nav-button rp-button">
+            <a href="/rp/" class="nav-button rp-button">
                 <div class="button-icon">🎯</div>
                 <div>RP 测试</div>
                 <div class="button-description">v1.2.0</div>
             </a>
             
-            <a href="/trans/index.html" class="nav-button trans-button">
+            <a href="/trans/" class="nav-button trans-button">
                 <div class="button-icon">🛠️</div>
                 <div>编码解码工具</div>
                 <div class="button-description">v1.0.1</div>
             </a>
 
-            <a href="/arm/index.html" class="nav-button arm-button">
+            <a href="/78/" class="nav-button arm-button">
                 <div class="button-icon">📏</div>
                 <div>78 长度测量</div>
                 <div class="button-description">v1.0.7</div>
             </a>
 
-            <a href="/forum/index.html" class="nav-button forum-button">
+            <a href="/forum/" class="nav-button forum-button">
                 <div class="button-icon">💬</div>
                 <div>论坛</div>
                 <div class="button-description">v1.1.0</div>
