@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录/注册</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .auth-container {
+            max-width: 400px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2rem;
+            background: linear-gradient(45deg, #ffcc00, #ff6b00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ffcc00;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.5);
+        }
+        
+        .auth-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+        }
+        
+        .auth-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
+        }
+        
+        .switch-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        
+        .switch-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .back-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #ff5252, #ff4081);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 82, 82, 0.4);
+        }
+        
+        .message {
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+        
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.5);
+        }
+        
+        .form-section {
+            display: none;
+        }
+        
+        .active {
+            display: block;
+        }
+        
+        .ip-restriction {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 5px;
+            color: #ffcc00;
+        }
+    </style>
+    
+    <!-- 引入 Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="auth-container">
+        <h1>用户登录</h1>
+        
+        <!-- 登录表单 -->
+        <div id="loginSection" class="form-section active">
+            <div class="form-group">
+                <label for="loginUsername">用户名</label>
+                <input type="text" id="loginUsername" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">密码</label>
+                <input type="password" id="loginPassword" placeholder="请输入密码">
+            </div>
+            <button class="auth-btn" id="loginBtn">登录</button>
+            <button class="auth-btn switch-btn" id="showRegisterBtn">没有账号？点击注册</button>
+        </div>
+        
+        <!-- 注册表单 -->
+        <div id="registerSection" class="form-section">
+            <div class="form-group">
+                <label for="registerUsername">用户名</label>
+                <input type="text" id="registerUsername" placeholder="请输入用户名（3-20位）">
+            </div>
+            <div class="form-group">
+                <label for="registerEmail">邮箱</label>
+                <input type="email" id="registerEmail" placeholder="请输入邮箱">
+            </div>
+            <div class="form-group">
+                <label for="registerPassword">密码</label>
+                <input type="password" id="registerPassword" placeholder="请输入密码（至少6位）">
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">确认密码</label>
+                <input type="password" id="confirmPassword" placeholder="请再次输入密码">
+            </div>
+            <div class="ip-restriction">注意：每个IP地址只能注册一个账户</div>
+            <button class="auth-btn" id="registerBtn">注册</button>
+            <button class="auth-btn switch-btn" id="showLoginBtn">已有账号？点击登录</button>
+        </div>
+        
+        <div class="message" id="message"></div>
+        
+        <button class="back-btn" onclick="window.location.href='/'">返回首页</button>
+    </div>
+
+    <script>
+        // Supabase 配置
+        const SUPABASE_URL = 'https://xwrgpngwmdjbmsziuodl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3cmdwbmd3bWRqYm1zeml1b2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNDUzNjksImV4cCI6MjA3NTcyMTM2OX0.kVpcSCmmwcLcs60C0BjPxyXFDxdl3V4ny-vutKsnbV8';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // 简单的密码哈希函数
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password + 'std114514_salt');
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        
+        // 获取客户端IP
+        async function getClientIP() {
+            try {
+                const response = await fetch('https://api.ipify.cn?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                console.error('获取 IP 失败:', error);
+                return 'unknown-' + Math.random().toString(36).substr(2, 9);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginSection = document.getElementById('loginSection');
+            const registerSection = document.getElementById('registerSection');
+            const showRegisterBtn = document.getElementById('showRegisterBtn');
+            const showLoginBtn = document.getElementById('showLoginBtn');
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            const message = document.getElementById('message');
+            
+            // 切换表单显示
+            showRegisterBtn.addEventListener('click', function() {
+                loginSection.classList.remove('active');
+                registerSection.classList.add('active');
+                message.style.display = 'none';
+            });
+            
+            showLoginBtn.addEventListener('click', function() {
+                registerSection.classList.remove('active');
+                loginSection.classList.add('active');
+                message.style.display = 'none';
+            });
+            
+            // 登录功能
+            loginBtn.addEventListener('click', async function() {
+                const username = document.getElementById('loginUsername').value.trim();
+                const password = document.getElementById('loginPassword').value.trim();
+                
+                if (!username || !password) {
+                    showMessage('请输入用户名和密码', 'error');
+                    return;
+                }
+                
+                try {
+                    // 计算密码哈希
+                    const passwordHash = await hashPassword(password);
+                    
+                    // 查询用户
+                    const { data, error } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('username', username)
+                        .eq('password_hash', passwordHash)
+                        .single();
+                    
+                    if (error || !data) {
+                        showMessage('用户名或密码错误', 'error');
+                        return;
+                    }
+                    
+                    // 更新最后登录时间
+                    await supabase
+                        .from('users')
+                        .update({ last_login: new Date().toISOString() })
+                        .eq('id', data.id);
+                    
+                    // 保存用户信息到本地存储
+                    localStorage.setItem('userData', JSON.stringify({
+                        id: data.id,
+                        username: data.username,
+                        email: data.email
+                    }));
+                    
+                    showMessage('登录成功！正在跳转...', 'success');
+                    
+                    // 跳转回首页
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('登录失败:', error);
+                    showMessage('登录失败，请稍后重试', 'error');
+                }
+            });
+            
+            // 注册功能
+            registerBtn.addEventListener('click', async function() {
+                const username = document.getElementById('registerUsername').value.trim();
+                const email = document.getElementById('registerEmail').value.trim();
+                const password = document.getElementById('registerPassword').value.trim();
+                const confirmPassword = document.getElementById('confirmPassword').value.trim();
+                
+                // 验证输入
+                if (!username || !email || !password || !confirmPassword) {
+                    showMessage('请填写所有字段', 'error');
+                    return;
+                }
+                
+                if (username.length < 3 || username.length > 20) {
+                    showMessage('用户名长度应为3-20位', 'error');
+                    return;
+                }
+                
+                if (password.length < 6) {
+                    showMessage('密码长度至少6位', 'error');
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    showMessage('两次输入的密码不一致', 'error');
+                    return;
+                }
+                
+                if (!validateEmail(email)) {
+                    showMessage('请输入有效的邮箱地址', 'error');
+                    return;
+                }
+                
+                try {
+                    // 获取客户端IP
+                    const ipAddress = await getClientIP();
+                    
+                    // 检查IP是否已经注册过
+                    const { data: existingIP, error: ipCheckError } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('ip_address', ipAddress)
+                        .single();
+                    
+                    if (existingIP) {
+                        showMessage('该IP地址已经注册过账户，每个IP只能注册一个账户', 'error');
+                        return;
+                    }
+                    
+                    // 检查用户名是否已存在
+                    const { data: existingUser, error: userCheckError } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('username', username)
+                        .single();
+                    
+                    if (existingUser) {
+                        showMessage('用户名已存在', 'error');
+                        return;
+                    }
+                    
+                    // 检查邮箱是否已存在
+                    const { data: existingEmail, error: emailCheckError } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('email', email)
+                        .single();
+                    
+                    if (existingEmail) {
+                        showMessage('邮箱已被注册', 'error');
+                        return;
+                    }
+                    
+                    // 计算密码哈希
+                    const passwordHash = await hashPassword(password);
+                    
+                    // 创建新用户
+                    const { data, error } = await supabase
+                        .from('users')
+                        .insert([
+                            {
+                                username: username,
+                                email: email,
+                                password_hash: passwordHash,
+                                ip_address: ipAddress,
+                                created_at: new Date().toISOString(),
+                                last_login: new Date().toISOString()
+                            }
+                        ])
+                        .select()
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    showMessage('注册成功！正在跳转...', 'success');
+                    
+                    // 自动登录
+                    localStorage.setItem('userData', JSON.stringify({
+                        id: data.id,
+                        username: data.username,
+                        email: data.email
+                    }));
+                    
+                    // 跳转回首页
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('注册失败:', error);
+                    showMessage('注册失败，请稍后重试', 'error');
+                }
+            });
+            
+            // 显示消息
+            function showMessage(text, type) {
+                message.textContent = text;
+                message.className = `message ${type}`;
+                message.style.display = 'block';
+            }
+            
+            // 验证邮箱格式
+            function validateEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+            
+            // 支持按回车键提交
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    if (loginSection.classList.contains('active')) {
+                        loginBtn.click();
+                    } else {
+                        registerBtn.click();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
