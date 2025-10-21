@@ -1288,7 +1288,7 @@
                 }
             }
             
-            // 处理帖子投票
+            // 重新设计投票处理逻辑
             async function handlePostVote(postId, voteType) {
                 const user = checkAuthStatus();
                 if (!user) {
@@ -1307,9 +1307,28 @@
                     
                     if (checkError && checkError.code !== 'PGRST116') throw checkError;
                     
+                    // 获取当前帖子计数
+                    const { data: post, error: postError } = await supabase
+                        .from('posts')
+                        .select('likes, dislikes')
+                        .eq('id', postId)
+                        .single();
+                    
+                    if (postError) throw postError;
+                    
+                    let newLikes = post.likes || 0;
+                    let newDislikes = post.dislikes || 0;
+                    
                     if (existingVote) {
                         if (existingVote.vote_type === voteType) {
-                            // 取消投票
+                            // 取消投票：减少对应类型的计数
+                            if (voteType === 1) {
+                                newLikes = Math.max(0, newLikes - 1);
+                            } else {
+                                newDislikes = Math.max(0, newDislikes - 1);
+                            }
+                            
+                            // 删除投票记录
                             const { error: deleteError } = await supabase
                                 .from('post_votes')
                                 .delete()
@@ -1317,31 +1336,52 @@
                             
                             if (deleteError) throw deleteError;
                             
-                            // 更新帖子计数
-                            await updatePostVoteCount(postId, -voteType);
                         } else {
-                            // 更改投票
+                            // 更改投票类型：减少旧类型计数，增加新类型计数
+                            if (existingVote.vote_type === 1) {
+                                // 从点赞改为点踩
+                                newLikes = Math.max(0, newLikes - 1);
+                                newDislikes += 1;
+                            } else {
+                                // 从点踩改为点赞
+                                newDislikes = Math.max(0, newDislikes - 1);
+                                newLikes += 1;
+                            }
+                            
+                            // 更新投票记录
                             const { error: updateError } = await supabase
                                 .from('post_votes')
                                 .update({ vote_type: voteType })
                                 .eq('id', existingVote.id);
                             
                             if (updateError) throw updateError;
-                            
-                            // 更新帖子计数（从旧投票变为新投票）
-                            await updatePostVoteCount(postId, voteType * 2);
                         }
                     } else {
-                        // 新投票
+                        // 新投票：增加对应类型的计数
+                        if (voteType === 1) {
+                            newLikes += 1;
+                        } else {
+                            newDislikes += 1;
+                        }
+                        
+                        // 创建投票记录
                         const { error: insertError } = await supabase
                             .from('post_votes')
                             .insert([{ user_id: user.id, post_id: postId, vote_type: voteType }]);
                         
                         if (insertError) throw insertError;
-                        
-                        // 更新帖子计数
-                        await updatePostVoteCount(postId, voteType);
                     }
+                    
+                    // 更新帖子计数
+                    const { error: updateCountError } = await supabase
+                        .from('posts')
+                        .update({ 
+                            likes: newLikes,
+                            dislikes: newDislikes
+                        })
+                        .eq('id', postId);
+                    
+                    if (updateCountError) throw updateCountError;
                     
                     // 刷新显示
                     if (currentPostId) {
@@ -1356,7 +1396,7 @@
                 }
             }
             
-            // 处理评论投票
+            // 类似的修复也需要应用到 handleCommentVote 函数
             async function handleCommentVote(commentId, voteType) {
                 const user = checkAuthStatus();
                 if (!user) {
@@ -1375,9 +1415,27 @@
                     
                     if (checkError && checkError.code !== 'PGRST116') throw checkError;
                     
+                    // 获取当前评论计数
+                    const { data: comment, error: commentError } = await supabase
+                        .from('comments')
+                        .select('likes, dislikes')
+                        .eq('id', commentId)
+                        .single();
+                    
+                    if (commentError) throw commentError;
+                    
+                    let newLikes = comment.likes || 0;
+                    let newDislikes = comment.dislikes || 0;
+                    
                     if (existingVote) {
                         if (existingVote.vote_type === voteType) {
                             // 取消投票
+                            if (voteType === 1) {
+                                newLikes = Math.max(0, newLikes - 1);
+                            } else {
+                                newDislikes = Math.max(0, newDislikes - 1);
+                            }
+                            
                             const { error: deleteError } = await supabase
                                 .from('comment_votes')
                                 .delete()
@@ -1385,31 +1443,48 @@
                             
                             if (deleteError) throw deleteError;
                             
-                            // 更新评论计数
-                            await updateCommentVoteCount(commentId, -voteType);
                         } else {
-                            // 更改投票
+                            // 更改投票类型
+                            if (existingVote.vote_type === 1) {
+                                newLikes = Math.max(0, newLikes - 1);
+                                newDislikes += 1;
+                            } else {
+                                newDislikes = Math.max(0, newDislikes - 1);
+                                newLikes += 1;
+                            }
+                            
                             const { error: updateError } = await supabase
                                 .from('comment_votes')
                                 .update({ vote_type: voteType })
                                 .eq('id', existingVote.id);
                             
                             if (updateError) throw updateError;
-                            
-                            // 更新评论计数（从旧投票变为新投票）
-                            await updateCommentVoteCount(commentId, voteType * 2);
                         }
                     } else {
                         // 新投票
+                        if (voteType === 1) {
+                            newLikes += 1;
+                        } else {
+                            newDislikes += 1;
+                        }
+                        
                         const { error: insertError } = await supabase
                             .from('comment_votes')
                             .insert([{ user_id: user.id, comment_id: commentId, vote_type: voteType }]);
                         
                         if (insertError) throw insertError;
-                        
-                        // 更新评论计数
-                        await updateCommentVoteCount(commentId, voteType);
                     }
+                    
+                    // 更新评论计数
+                    const { error: updateCountError } = await supabase
+                        .from('comments')
+                        .update({ 
+                            likes: newLikes,
+                            dislikes: newDislikes
+                        })
+                        .eq('id', commentId);
+                    
+                    if (updateCountError) throw updateCountError;
                     
                     // 刷新帖子详情
                     if (currentPostId) {
@@ -1422,7 +1497,7 @@
                 }
             }
             
-            // 更新帖子投票计数
+            // 更新帖子投票计数（修复版）
             async function updatePostVoteCount(postId, voteChange) {
                 try {
                     // 获取当前帖子
@@ -1437,18 +1512,27 @@
                     let newLikes = post.likes || 0;
                     let newDislikes = post.dislikes || 0;
                     
+                    // 根据voteChange的正负分别处理点赞和点踩
+                    // voteChange为正表示点赞相关变化，为负表示点踩相关变化
+                    // voteChange的绝对值表示变化的大小
                     if (voteChange > 0) {
+                        // 点赞相关变化
                         newLikes += voteChange;
-                    } else {
+                    } else if (voteChange < 0) {
+                        // 点踩相关变化
                         newDislikes += Math.abs(voteChange);
                     }
+                    
+                    // 确保不会出现负数
+                    newLikes = Math.max(0, newLikes);
+                    newDislikes = Math.max(0, newDislikes);
                     
                     // 更新帖子
                     const { error: updateError } = await supabase
                         .from('posts')
                         .update({ 
-                            likes: Math.max(0, newLikes),
-                            dislikes: Math.max(0, newDislikes)
+                            likes: newLikes,
+                            dislikes: newDislikes
                         })
                         .eq('id', postId);
                     
@@ -1460,7 +1544,7 @@
                 }
             }
             
-            // 更新评论投票计数
+            // 更新评论投票计数（修复版）
             async function updateCommentVoteCount(commentId, voteChange) {
                 try {
                     // 获取当前评论
@@ -1475,18 +1559,23 @@
                     let newLikes = comment.likes || 0;
                     let newDislikes = comment.dislikes || 0;
                     
+                    // 根据voteChange的正负分别处理点赞和点踩
                     if (voteChange > 0) {
                         newLikes += voteChange;
-                    } else {
+                    } else if (voteChange < 0) {
                         newDislikes += Math.abs(voteChange);
                     }
+                    
+                    // 确保不会出现负数
+                    newLikes = Math.max(0, newLikes);
+                    newDislikes = Math.max(0, newDislikes);
                     
                     // 更新评论
                     const { error: updateError } = await supabase
                         .from('comments')
                         .update({ 
-                            likes: Math.max(0, newLikes),
-                            dislikes: Math.max(0, newDislikes)
+                            likes: newLikes,
+                            dislikes: newDislikes
                         })
                         .eq('id', commentId);
                     
