@@ -131,7 +131,7 @@ class NameArena {
         });
     }
     
-    // 开始战斗
+    // 修复后的开始战斗函数
     async startBattle() {
         const input = document.getElementById('nameInput').value.trim();
         if (!input) {
@@ -140,8 +140,17 @@ class NameArena {
         }
         
         const teams = this.parseNames(input);
-        if (teams.length < 2 || teams.flat().length < 2) {
-            this.addLog('至少需要2个队伍且每个队伍至少1人！', 'log-warning');
+        
+        // 检查队伍数量（至少2队）和每队至少1人
+        if (teams.length < 2) {
+            this.addLog('至少需要2个队伍！', 'log-warning');
+            return;
+        }
+        
+        // 检查每个队伍是否至少1人
+        const emptyTeams = teams.filter(team => team.length === 0);
+        if (emptyTeams.length > 0) {
+            this.addLog('每个队伍至少需要1个人！', 'log-warning');
             return;
         }
         
