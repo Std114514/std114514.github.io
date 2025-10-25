@@ -141,13 +141,13 @@ class NameArena {
         const teams = this.parseNames(input);
         
         if (teams.length < 2) {
-            this.addLog('至少需要2个队伍！请用空行分隔不同队伍。', 'log-warning');
+            this.addLog('至少需要2个队伍！', 'log-warning');
             return;
         }
         
         const emptyTeams = teams.filter(team => team.length === 0);
         if (emptyTeams.length > 0) {
-            this.addLog('每个队伍至少需要1个人！请检查空队伍。', 'log-warning');
+            this.addLog('每个队伍至少需要1个人！', 'log-warning');
             return;
         }
         
@@ -328,7 +328,7 @@ class NameArena {
         
         if (target.isCharging) {
             target.isCharging = false;
-            this.addLog(`${target.name} 的蓄力被打断`, 'log-warning');
+            this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
         }
         
         this.checkDeath(target);
@@ -345,7 +345,7 @@ class NameArena {
                 char.currentHp -= damage;
                 if (char.isCharging) {
                     char.isCharging = false;
-                    this.addLog(`${char.name} 的蓄力被打断`, 'log-warning');
+                    this.addLog(`${char.name} 的蓄力被打断了！`, 'log-warning');
                 }
                 this.checkDeath(char);
             }
@@ -362,12 +362,12 @@ class NameArena {
             const target = this.selectRandomEnemy(attacker);
             const damage = attacker.attack * 24 - 3 + Math.floor(Math.random() * 7);
             
-            this.addLog(`${attacker.name} 蓄力完成！对 ${target.name} 造成 ${damage} 点无法抵挡的伤害`, 'log-critical');
+            this.addLog(`${attacker.name} 蓄力完成，打出了会心一击，对 ${target.name} 造成 ${damage} 点无法抵挡的伤害！！`, 'log-critical');
             
             target.currentHp -= damage;
             if (target.isCharging) {
                 target.isCharging = false;
-                this.addLog(`${target.name} 的蓄力被打断`, 'log-warning');
+                this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
             }
             this.checkDeath(target);
         }
@@ -376,7 +376,7 @@ class NameArena {
     // 火球术
     async fireballMagic(attacker) {
         const target = this.selectRandomEnemy(attacker);
-        const damage = Math.floor(attacker.attack * 0.67) - 3 + Math.floor(Math.random() * 7);
+        const damage = Math.floor(attacker.attack * 3) - 3 + Math.floor(Math.random() * 7);
         
         target.isBurning = true;
         target.burnDamage = damage;
@@ -386,7 +386,7 @@ class NameArena {
         
         if (target.isCharging) {
             target.isCharging = false;
-            this.addLog(`${target.name} 的蓄力被打断`, 'log-warning');
+            this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
         }
         this.checkDeath(target);
     }
@@ -445,7 +445,7 @@ class NameArena {
                     target.currentHp -= damage;
                     if (target.isCharging) {
                         target.isCharging = false;
-                        this.addLog(`${target.name} 的蓄力被打断`, 'log-warning');
+                        this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
                     }
                 } else if (reboundResult === 1) {
                     this.addLog(`${attacker.name} 防御成功`, 'log-defend');
@@ -457,7 +457,7 @@ class NameArena {
                 target.currentHp -= damage;
                 if (target.isCharging) {
                     target.isCharging = false;
-                    this.addLog(`${target.name} 的蓄力被打断`, 'log-warning');
+                    this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
                 }
                 break;
         }
@@ -468,15 +468,32 @@ class NameArena {
         }
     }
     
-    // 处理燃烧伤害
+    // 处理燃烧伤害 - 修复版本
     async processBurnDamage() {
         this.characters.forEach(char => {
             if (char.isAlive && char.isBurning && char.burnDamage > 0) {
+                // 计算当前回合的燃烧伤害
                 const burnDmg = Math.floor(char.burnDamage * 0.4);
+                
                 if (burnDmg > 0) {
                     char.currentHp -= burnDmg;
                     this.addLog(`${char.name} 受到 ${burnDmg} 点燃烧伤害`, 'log-attack');
                     this.checkDeath(char);
+                    
+                    // 更新燃烧伤害为下一回合的值（乘以0.4并向下取整）
+                    char.burnDamage = Math.floor(char.burnDamage * 0.4);
+                    
+                    // 如果下一回合的燃烧伤害为0，清除燃烧状态
+                    if (char.burnDamage <= 0) {
+                        char.isBurning = false;
+                        char.burnDamage = 0;
+                        this.addLog(`${char.name} 的燃烧效果消失了`, 'log-normal');
+                    }
+                } else {
+                    // 如果当前燃烧伤害为0，清除燃烧状态
+                    char.isBurning = false;
+                    char.burnDamage = 0;
+                    this.addLog(`${char.name} 的燃烧效果消失了`, 'log-normal');
                 }
             }
         });
