@@ -4,7 +4,7 @@ class NameArena {
         this.teams = [];
         this.battleLog = [];
         this.isFighting = false;
-        this.currentSpeed = 200;
+        this.currentSpeed = 200; // 默认中等速度
         this.round = 0;
         
         this.initializeEventListeners();
@@ -51,7 +51,7 @@ class NameArena {
         else return 0; // 防御失败
     }
     
-    // 修复后的 parseNames 函数
+    // 解析输入的名字
     parseNames(input) {
         const lines = input.split('\n');
         const teams = [];
@@ -60,18 +60,15 @@ class NameArena {
         lines.forEach(line => {
             const trimmedLine = line.trim();
             if (trimmedLine === '') {
-                // 遇到空行，如果当前队伍有内容，就保存当前队伍
                 if (currentTeam.length > 0) {
                     teams.push([...currentTeam]);
                     currentTeam = [];
                 }
             } else {
-                // 非空行，添加到当前队伍
                 currentTeam.push(trimmedLine);
             }
         });
         
-        // 处理最后一个队伍
         if (currentTeam.length > 0) {
             teams.push([...currentTeam]);
         }
@@ -79,7 +76,7 @@ class NameArena {
         return teams;
     }
     
-    // 初始化角色
+    // 初始化角色 - 修复版本
     initializeCharacters(teams) {
         this.characters = [];
         let id = 1;
@@ -104,23 +101,23 @@ class NameArena {
                     temp = Math.floor(temp / 10);
                 }
                 
-                // 计算属性
-                const maxHp = 350 + x[1] * x[4] + 2 * x[3] * x[6];
-                const attack = 15 + x[2] + x[5];
-                const critical = (5 + m[3] % 8) * 5;
-                const defense = (5 + m[5]) * 3;
-                const magic = (m[1] % 6 + m[6] % 6 + m[2] % 6) * 3;
+                // 修复属性计算 - 确保所有值都是有效数字
+                const maxHp = 350 + (x[0] || 0) * (x[3] || 0) + 2 * (x[2] || 0) * (x[5] || 0);
+                const attack = 15 + (x[1] || 0) + (x[4] || 0);
+                const critical = (5 + ((m[2] || 0) % 8)) * 5;
+                const defense = (5 + (m[4] || 0)) * 3;
+                const magic = (((m[0] || 0) % 6) + ((m[5] || 0) % 6) + ((m[1] || 0) % 6)) * 3;
                 
                 this.characters.push({
                     id: id++,
                     name: name,
                     team: teamIndex + 1,
-                    maxHp: maxHp,
-                    currentHp: maxHp,
-                    attack: attack,
-                    critical: critical,
-                    defense: defense,
-                    magic: magic,
+                    maxHp: Math.max(1, maxHp),
+                    currentHp: Math.max(1, maxHp),
+                    attack: Math.max(1, attack),
+                    critical: Math.max(1, critical),
+                    defense: Math.max(1, defense),
+                    magic: Math.max(1, magic),
                     isAlive: true,
                     isCharging: false,
                     isBurning: false,
@@ -131,7 +128,7 @@ class NameArena {
         });
     }
     
-    // 修复后的开始战斗函数
+    // 开始战斗
     async startBattle() {
         const input = document.getElementById('nameInput').value.trim();
         if (!input) {
@@ -141,16 +138,14 @@ class NameArena {
         
         const teams = this.parseNames(input);
         
-        // 检查队伍数量（至少2队）和每队至少1人
         if (teams.length < 2) {
-            this.addLog('至少需要2个队伍！', 'log-warning');
+            this.addLog('至少需要2个队伍！请用空行分隔不同队伍。', 'log-warning');
             return;
         }
         
-        // 检查每个队伍是否至少1人
         const emptyTeams = teams.filter(team => team.length === 0);
         if (emptyTeams.length > 0) {
-            this.addLog('每个队伍至少需要1个人！', 'log-warning');
+            this.addLog('每个队伍至少需要1个人！请检查空队伍。', 'log-warning');
             return;
         }
         
@@ -175,7 +170,6 @@ class NameArena {
         while (this.isFighting) {
             this.round++;
             
-            // 检查是否只有一队存活
             const aliveTeams = new Set();
             this.characters.forEach(char => {
                 if (char.isAlive) {
@@ -188,7 +182,6 @@ class NameArena {
                 break;
             }
             
-            // 选择攻击者
             let attacker = this.selectRandomAliveCharacter();
             while (attacker === lastAttacker) {
                 attacker = this.selectRandomAliveCharacter();
@@ -201,14 +194,10 @@ class NameArena {
             await this.performAction(attacker);
             await this.delay(this.currentSpeed);
             
-            // 处理燃烧伤害
             await this.processBurnDamage();
             await this.delay(this.currentSpeed);
             
-            // 检查濒死状态
             this.checkCriticalHealth();
-            
-            // 更新显示
             this.displayCharacterStats();
             
             await this.delay(this.currentSpeed);
@@ -226,13 +215,10 @@ class NameArena {
         const rand = Math.floor(Math.random() * 200) + 1;
         
         if (rand <= attacker.magic) {
-            // 使用魔法
             await this.useMagic(attacker);
         } else if (rand <= attacker.magic + attacker.critical) {
-            // 暴击
             await this.criticalAttack(attacker);
         } else {
-            // 普通攻击
             await this.normalAttack(attacker);
         }
     }
@@ -262,31 +248,31 @@ class NameArena {
         const magicType = Math.floor(Math.random() * 9);
         
         switch (magicType) {
-            case 0: // 治疗
+            case 0:
                 await this.healMagic(attacker);
                 break;
-            case 1: // 重创
+            case 1:
                 await this.heavyStrike(attacker);
                 break;
-            case 2: // 冰冻术
+            case 2:
                 await this.freezeMagic(attacker);
                 break;
-            case 3: // 属性提升
+            case 3:
                 await this.buffMagic(attacker);
                 break;
-            case 4: // 原子弹
+            case 4:
                 await this.nukeMagic(attacker);
                 break;
-            case 5: // 雷劈术
+            case 5:
                 await this.thunderMagic(attacker);
                 break;
-            case 6: // 蓄力攻击
+            case 6:
                 await this.chargeAttack(attacker);
                 break;
-            case 7: // 火球术
+            case 7:
                 await this.fireballMagic(attacker);
                 break;
-            case 8: // 复活
+            case 8:
                 await this.resurrectMagic(attacker);
                 break;
         }
@@ -440,15 +426,15 @@ class NameArena {
             allies[Math.floor(Math.random() * allies.length)] : attacker;
     }
     
-    // 应用伤害（包含防御判定）
+    // 应用伤害
     async applyDamage(target, damage, attacker) {
         const defenseResult = this.defenseCheck(target.defense);
         
         switch (defenseResult) {
-            case 1: // 防御成功
+            case 1:
                 this.addLog(`${target.name} 防御成功`, 'log-defend');
                 break;
-            case 2: // 反弹
+            case 2:
                 this.addLog(`${target.name} 反弹伤害`, 'log-defend');
                 const reboundResult = this.defenseCheck(attacker.defense);
                 
@@ -465,7 +451,7 @@ class NameArena {
                     attacker.currentHp -= damage;
                 }
                 break;
-            default: // 防御失败
+            default:
                 target.currentHp -= damage;
                 if (target.isCharging) {
                     target.isCharging = false;
@@ -606,10 +592,14 @@ class NameArena {
         });
     }
     
-    // 获取队伍颜色
+    // 获取队伍颜色 - 真正随机版本
     getTeamColor(team) {
-        const colors = ['#ffcc00', '#4CAF50', '#2196F3', '#9C27B0', '#FF5722', '#607D8B'];
-        return colors[(team - 1) % colors.length];
+        // 生成鲜艳的随机颜色
+        const hue = (team * 137.5) % 360; // 使用黄金角度来获得均匀分布的颜色
+        const saturation = 70 + Math.random() * 20; // 70-90% 饱和度
+        const lightness = 50 + Math.random() * 10; // 50-60% 亮度
+        
+        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
     
     // 清空输入
