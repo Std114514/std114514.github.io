@@ -51,23 +51,27 @@ class NameArena {
         else return 0; // 防御失败
     }
     
-    // 解析输入的名字
+    // 修复后的 parseNames 函数
     parseNames(input) {
-        const lines = input.split('\n').filter(line => line.trim() !== '');
+        const lines = input.split('\n');
         const teams = [];
         let currentTeam = [];
         
         lines.forEach(line => {
-            if (line.trim() === '') {
+            const trimmedLine = line.trim();
+            if (trimmedLine === '') {
+                // 遇到空行，如果当前队伍有内容，就保存当前队伍
                 if (currentTeam.length > 0) {
                     teams.push([...currentTeam]);
                     currentTeam = [];
                 }
             } else {
-                currentTeam.push(line.trim());
+                // 非空行，添加到当前队伍
+                currentTeam.push(trimmedLine);
             }
         });
         
+        // 处理最后一个队伍
         if (currentTeam.length > 0) {
             teams.push([...currentTeam]);
         }
