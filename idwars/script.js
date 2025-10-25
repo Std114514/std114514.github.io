@@ -75,6 +75,8 @@ class NameArena {
         
         return teams;
     }
+
+    // UpDate Test
     
     // 初始化角色 - 修复版本
     initializeCharacters(teams) {
