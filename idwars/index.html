@@ -24,7 +24,7 @@
             max-width: 1400px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 2fr 3fr;
             grid-gap: 20px;
         }
 
@@ -46,9 +46,15 @@
         h1 {
             text-align: center;
             color: #fff;
-            margin-bottom: 30px;
+            margin-bottom: 5px;
             font-size: 2.5rem;
             text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #a0a0a0;
+            margin-bottom: 30px;
         }
 
         h2 {
@@ -148,7 +154,7 @@
         }
 
         .battle-log {
-            height: 400px;
+            height: 500px; /* 增加战斗日志高度 */
             overflow-y: auto;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
@@ -262,6 +268,9 @@
             margin-top: 20px;
             font-size: 14px;
             line-height: 1.5;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
         }
 
         .instructions h3 {
@@ -309,12 +318,36 @@
             flex: 2;
             text-align: left;
         }
+
+        /* 新增：右侧面板布局调整 */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .stats-section {
+            flex: 4; /* 占据4/5空间 */
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        .stats-panel {
+            flex: 1;
+        }
+
+        .instructions-section {
+            flex: 1; /* 占据1/5空间 */
+        }
     </style>
 </head>
 <body>
     <h1>名字竞技场 v2.4.0</h1>
     <p class="subtitle">by std114514</p>
+    
     <div class="container">
+        <!-- 左侧面板：输入和战斗日志 -->
         <div class="panel">
             <h2>输入名字</h2>
             <textarea id="nameInput" placeholder="请输入名字，每个队伍用空行分隔"></textarea>
@@ -327,31 +360,38 @@
             
             <h2>战斗速度</h2>
             <div class="speed-controls">
-                <button class="speed-btn active" data-speed="500">慢速</button>
-                <button class="speed-btn" data-speed="200">中速</button>
+                <button class="speed-btn" data-speed="500">慢速</button>
+                <button class="speed-btn active" data-speed="200">中速</button>
                 <button class="speed-btn" data-speed="50">快速</button>
                 <button class="speed-btn" data-speed="10">极速</button>
             </div>
             
             <h2>战斗日志</h2>
             <div id="battleLog" class="battle-log"></div>
-            
-            <div class="instructions">
-                <h3>游戏说明</h3>
-                <ul>
-                    <li>每个队伍用空行分隔，每个队伍至少需要1个人</li>
-                    <li>至少需要2个队伍才能开始战斗</li>
-                    <li>战斗完全自动进行，直到只剩一个队伍或全部阵亡</li>
-                </ul>
-                <p>💀 阵亡 | ⚡ 蓄力 | 🔥 燃烧 | 💖 被魅惑</p>
-            </div>
         </div>
         
-        <div class="panel">
-            <h2>角色状态</h2>
-            <div id="statsPanel" class="stats-panel">
-                <div style="text-align: center; color: #888; padding: 20px;">
-                    战斗开始后，角色属性将显示在这里
+        <!-- 右侧面板：角色状态和说明 -->
+        <div class="panel right-panel">
+            <div class="stats-section">
+                <h2>角色状态</h2>
+                <div id="statsPanel" class="stats-panel">
+                    <div style="text-align: center; color: #888; padding: 20px;">
+                        战斗开始后，角色属性将显示在这里
+                    </div>
+                </div>
+            </div>
+            
+            <div class="instructions-section">
+                <div class="instructions">
+                    <h3>游戏说明</h3>
+                    <ul>
+                        <li>每个队伍用空行分隔，每个队伍至少需要1个人</li>
+                        <li>至少需要2个队伍才能开始战斗</li>
+                        <li>角色的属性由名字通过哈希算法计算得出</li>
+                        <li>战斗完全自动进行，直到只剩一个队伍或全部阵亡</li>
+                        <li>连击规则：不同回合间造成伤害且这两个回合间没有掉血才算连击</li>
+                    </ul>
+                    <p>💀 阵亡 | ⚡ 蓄力 | 🔥 燃烧 | 💖 被魅惑</p>
                 </div>
             </div>
         </div>
@@ -375,7 +415,7 @@
                 document.getElementById('clearBtn').addEventListener('click', () => this.clearInput());
                 document.getElementById('exampleBtn').addEventListener('click', () => this.loadExample());
                 
-                // 速度控制 update test
+                // 速度控制
                 document.querySelectorAll('.speed-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
