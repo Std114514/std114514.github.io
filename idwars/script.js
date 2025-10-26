@@ -136,7 +136,7 @@ class NameArena {
                     kills: 0,
                     killedBy: null, // 修复：记录被谁杀死
                     combo: 0,
-                    lastComboRound: 0
+                    lastComboRound: 0  // 修复：确保初始化为0
                 });
             });
         });
@@ -377,12 +377,13 @@ class NameArena {
         if (!target) return;
         
         const damage = Math.floor(target.currentHp / 2);
-        target.currentHp -= damage;
+        const actualDamage = Math.min(target.currentHp, damage);
+        target.currentHp -= actualDamage;
         
         this.addLog(`${attacker.name} 扔出原子弹，${target.name} 的 HP 减少一半！`, 'log-special');
         
-        // 记录伤害
-        this.recordDamage(attacker, target, damage);
+        // 记录伤害 - 原子弹应该计入连击
+        this.recordDamage(attacker, target, actualDamage);
         
         if (target.isCharging) {
             target.isCharging = false;
@@ -392,19 +393,23 @@ class NameArena {
         this.checkDeath(target, attacker);
     }
     
-    // 雷劈术
+    // 雷劈术 - 修改版：不计入连击
     async thunderMagic(attacker) {
         const damage = Math.floor(attacker.attack * 0.67) - 3 + Math.floor(Math.random() * 7);
         
         this.addLog(`${attacker.name} 使用雷劈术，对所有敌人造成 ${damage} 点伤害！`, 'log-magic');
         
+        // 雷劈术不计入连击，直接记录伤害而不调用recordDamage
         this.characters.forEach(char => {
             if (char.isAlive && char.team !== attacker.team) {
                 const actualDamage = Math.min(char.currentHp, damage);
                 char.currentHp -= actualDamage;
                 
-                // 记录伤害
-                this.recordDamage(attacker, char, actualDamage);
+                // 直接增加积分，不触发连击
+                attacker.score += actualDamage;
+                attacker.totalDamage += actualDamage;
+                
+                this.addLog(`雷劈术对 ${char.name} 造成 ${actualDamage} 点伤害，获得 ${actualDamage} 分`, 'log-normal');
                 
                 if (char.isCharging) {
                     char.isCharging = false;
@@ -426,11 +431,11 @@ class NameArena {
             if (!target) return;
             
             const damage = attacker.attack * 24 - 3 + Math.floor(Math.random() * 7);
+            const actualDamage = Math.min(target.currentHp, damage);
             
-            this.addLog(`${attacker.name} 蓄力完成，打出了会心一击，对 ${target.name} 造成 ${damage} 点无法抵挡的伤害！！`, 'log-critical');
+            this.addLog(`${attacker.name} 蓄力完成，打出了会心一击，对 ${target.name} 造成 ${actualDamage} 点无法抵挡的伤害！！`, 'log-critical');
             
             // 直接应用伤害，因为蓄力攻击无法被防御
-            const actualDamage = Math.min(target.currentHp, damage);
             target.currentHp -= actualDamage;
             this.recordDamage(attacker, target, actualDamage);
             
@@ -480,6 +485,8 @@ class NameArena {
             target.charmedTurns = 0;
             target.team = target.originalTeam; // 恢复原始队伍
             target.killedBy = null; // 清除死亡记录
+            target.combo = 0; // 重置连击
+            target.lastComboRound = 0; // 重置连击回合
             
             // 重置属性到初始值（避免濒死状态的影响）
             this.resetCharacterStats(target);
@@ -513,7 +520,7 @@ class NameArena {
         this.addLog(`${attacker.name} 使用魅惑术，${target.name} 被魅惑了！接下来的2回合将攻击队友`, 'log-magic');
     }
     
-    // 应用伤害 - 修改版，包含积分计算
+    // 应用伤害 - 修改版，包含积分计算和反弹成功判定
     async applyDamage(attacker, target, damage) {
         const defenseResult = this.defenseCheck(target.defense);
         
@@ -527,9 +534,6 @@ class NameArena {
                 
             case 2: // 反弹
                 this.addLog(`${target.name} 反弹伤害`, 'log-defend');
-                target.reboundSuccess++;
-                target.score += 90;
-                this.addLog(`${target.name} 反弹成功，获得 90 分`, 'log-normal');
                 
                 const reboundResult = this.defenseCheck(attacker.defense);
                 
@@ -548,12 +552,23 @@ class NameArena {
                         target.isCharging = false;
                         this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
                     }
+                    
+                    // 目标反弹失败，因为被再次反弹
+                    this.addLog(`${target.name} 反弹失败，因为被再次反弹`, 'log-normal');
                 } else if (reboundResult === 1) {
                     this.addLog(`${attacker.name} 防御成功`, 'log-defend');
                     attacker.defendSuccess++;
                     attacker.score += 20;
                     this.addLog(`${attacker.name} 防御成功，获得 20 分`, 'log-normal');
+                    
+                    // 目标反弹失败，因为被防御
+                    this.addLog(`${target.name} 反弹失败，因为被防御`, 'log-normal');
                 } else {
+                    // 反弹成功 - 只有在这种情况下才算真正的反弹成功
+                    target.reboundSuccess++;
+                    target.score += 90;
+                    this.addLog(`${target.name} 反弹成功，获得 90 分`, 'log-normal');
+                    
                     // 反弹给攻击者
                     const actualDamage = Math.min(attacker.currentHp, damage);
                     attacker.currentHp -= actualDamage;
@@ -579,13 +594,15 @@ class NameArena {
         }
     }
     
-    // 记录伤害并计算积分
+    // 记录伤害并计算积分 - 修复版：正确更新lastComboRound
     recordDamage(attacker, target, actualDamage) {
-        // 更新连击
-        if (attacker.lastComboRound === this.round) {
-            attacker.combo++;
-        } else {
-            attacker.combo = 1;
+        // 更新连击 - 修复：只有当实际造成伤害时才更新连击
+        if (actualDamage > 0) {
+            if (attacker.lastComboRound === this.round - 1) {
+                attacker.combo++;
+            } else {
+                attacker.combo = 1;
+            }
             attacker.lastComboRound = this.round;
         }
         
@@ -783,6 +800,9 @@ class NameArena {
         character.critical = Math.max(1, character.critical);
         character.defense = Math.max(1, character.defense);
         character.magic = Math.max(1, character.magic);
+        
+        // 重置濒死状态
+        character.isCriticalHealth = false;
     }
     
     // 选择随机敌人 - 修改版：考虑魅惑状态
@@ -883,6 +903,10 @@ class NameArena {
                     <div class="stat-item">
                         <span>积分:</span>
                         <span>${char.score}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>连击:</span>
+                        <span>${char.combo}</span>
                     </div>
                     <div class="stat-item">
                         <span>队伍:</span>
