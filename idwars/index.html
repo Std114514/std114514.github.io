@@ -262,6 +262,37 @@
                 max-height: 400px;
             }
         }
+
+        .log-table {
+            font-family: 'Roboto', monospace;
+            margin: 5px 0;
+        }
+        
+        .table-row {
+            display: flex;
+            border-bottom: 1px solid #444;
+            padding: 2px 0;
+        }
+        
+        .table-header {
+            font-weight: bold;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .table-cell {
+            flex: 1;
+            padding: 0 5px;
+            text-align: center;
+        }
+        
+        .table-cell:first-child {
+            flex: 0.5;
+        }
+        
+        .table-cell:nth-child(2) {
+            flex: 2;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
