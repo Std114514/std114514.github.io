@@ -211,7 +211,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 12px;
-            max-height: 800px;
+            max-height: 720px;
             overflow-y: auto;
             padding: 10px;
             border: 1px solid #ddd;
@@ -294,6 +294,7 @@
             margin: 10px 0;
             border-radius: 5px;
             overflow: hidden;
+			color: #ecf0f1;
         }
 
         .table-row {
@@ -1130,7 +1131,7 @@
                         killer.kills++;
                         killer.score += 200;
                         character.killedBy = killer.name; // 修复：记录谁杀死了这个角色
-                        this.addLog(`${character.name} 被 ${killer.name} 击杀！${killer.name} 获得 200 分`, 'log-death');
+                        this.addLog(`${character.name} 被 ${killer.name} 击杀！`, 'log-death'); // 获得 200 分
                     } else {
                         this.addLog(`${character.name} 阵亡`, 'log-death');
                     }
