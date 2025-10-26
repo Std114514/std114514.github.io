@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -79,17 +79,15 @@
         }
         
         .button-container {
-            display: flex;
-            gap: 30px;
-            justify-content: center;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
         }
         
         .nav-button {
-            flex: 1;
-            min-width: 200px;
+            min-height: 140px;
             padding: 25px 30px;
             border: none;
             border-radius: 20px;
@@ -139,6 +137,11 @@
         
         .trans-button {
             background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .wordle-button {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
             color: white;
         }
         
@@ -285,8 +288,7 @@
         
         @media (max-width: 768px) {
             .button-container {
-                flex-direction: column;
-                align-items: center;
+                grid-template-columns: 1fr;
             }
             
             .nav-button {
@@ -348,14 +350,6 @@
         }
         
         /* 确保所有按钮大小一致 */
-        .button-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            width: 100%;
-            max-width: 800px;
-        }
-        
         .nav-button {
             min-height: 140px;
             display: flex;
@@ -508,6 +502,16 @@
             background: linear-gradient(135deg, #FF5722, #E64A19);
             color: white;
         }
+        
+        .forum-button {
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+        }
+        
+        .arm-button {
+            background: linear-gradient(135deg, #00BCD4, #0097A7);
+            color: white;
+        }
     </style>
     
     <!-- 引入 Supabase SDK -->
@@ -574,6 +578,12 @@
                 <div class="button-icon">⚔️</div>
                 <div>名字竞技场</div>
                 <div class="button-description">v2.4.0</div>
+            </a>
+            
+            <a href="/wordle/" class="nav-button wordle-button">
+                <div class="button-icon">🔤</div>
+                <div>Wordle</div>
+                <div class="button-description">无限版</div>
             </a>
         </div>
         
@@ -875,16 +885,6 @@
             
             // 绑定签到按钮事件
             document.getElementById('signinButton').addEventListener('click', performSignin);
-            
-            // 添加论坛按钮样式
-            const style = document.createElement('style');
-            style.textContent = `
-                .forum-button {
-                    background: linear-gradient(135deg, #9C27B0, #7B1FA2);
-                    color: white;
-                }
-            `;
-            document.head.appendChild(style);
         });
     </script>
 </body>
