@@ -76,8 +76,6 @@ class NameArena {
         return teams;
     }
 
-    // UpDate Test
-    
     // 初始化角色 - 修复版本
     initializeCharacters(teams) {
         this.characters = [];
@@ -124,7 +122,10 @@ class NameArena {
                     isCharging: false,
                     isBurning: false,
                     burnDamage: 0,
-                    isCriticalHealth: false
+                    isCriticalHealth: false,
+                    isCharmed: false, // 新增：魅惑状态
+                    charmedTurns: 0,  // 新增：魅惑剩余回合数
+                    originalTeam: teamIndex + 1 // 新增：原始队伍
                 });
             });
         });
@@ -197,6 +198,7 @@ class NameArena {
             await this.delay(this.currentSpeed);
             
             await this.processBurnDamage();
+            await this.processCharmedStatus(); // 新增：处理魅惑状态
             await this.delay(this.currentSpeed);
             
             this.checkCriticalHealth();
@@ -253,7 +255,7 @@ class NameArena {
     
     // 使用魔法
     async useMagic(attacker) {
-        const magicType = Math.floor(Math.random() * 9);
+        const magicType = Math.floor(Math.random() * 10); // 改为0-9，增加魅惑技能
         
         switch (magicType) {
             case 0:
@@ -283,6 +285,9 @@ class NameArena {
             case 8:
                 await this.resurrectMagic(attacker);
                 break;
+            case 9:
+                await this.charmMagic(attacker); // 新增：魅惑魔法
+                break;
         }
     }
     
@@ -292,7 +297,7 @@ class NameArena {
         const heal = Math.floor(ally.maxHp / 5) - 3 + Math.floor(Math.random() * 7);
         
         ally.currentHp = Math.min(ally.maxHp, ally.currentHp + heal);
-        this.addLog(`${attacker.name} 治疗 ${ally.name}，回复 ${heal} 点HP`, 'log-heal');
+        this.addLog(`${attacker.name} 治疗 ${ally.name}，回复 ${heal} 点 HP`, 'log-heal');
     }
     
     // 重创魔法
@@ -300,7 +305,7 @@ class NameArena {
         const target = this.selectRandomEnemy(attacker);
         const damage = attacker.attack * 5 - 3 + Math.floor(Math.random() * 7);
         
-        this.addLog(`${attacker.name} 重创 ${target.name}，造成 ${damage} 点伤害`, 'log-attack');
+        this.addLog(`${attacker.name} 重创 ${target.name}，造成 ${damage} 点伤害！`, 'log-attack');
         
         await this.applyDamage(target, damage, attacker);
     }
@@ -313,7 +318,7 @@ class NameArena {
         target.defense = Math.floor(target.defense * 0.67);
         target.magic = Math.floor(target.magic * 0.67);
         
-        this.addLog(`${attacker.name} 使用冰冻术，${target.name} 属性全面降低`, 'log-magic');
+        this.addLog(`${attacker.name} 使用冰冻术，${target.name} 属性全面降低！`, 'log-magic');
     }
     
     // 属性提升
@@ -322,7 +327,7 @@ class NameArena {
         attacker.defense = Math.min(120, Math.floor(attacker.defense * 1.5));
         attacker.magic = Math.min(80, Math.floor(attacker.magic * 1.5));
         
-        this.addLog(`${attacker.name} 属性全面提升`, 'log-magic');
+        this.addLog(`${attacker.name} 属性全面提升！`, 'log-magic');
     }
     
     // 原子弹
@@ -330,7 +335,7 @@ class NameArena {
         const target = this.selectRandomEnemy(attacker);
         
         target.currentHp = Math.floor(target.currentHp / 2);
-        this.addLog(`${attacker.name} 扔出原子弹，${target.name} 的HP减少一半`, 'log-special');
+        this.addLog(`${attacker.name} 扔出原子弹，${target.name} 的 HP 减少一半！`, 'log-special');
         
         if (target.isCharging) {
             target.isCharging = false;
@@ -344,7 +349,7 @@ class NameArena {
     async thunderMagic(attacker) {
         const damage = Math.floor(attacker.attack * 0.67) - 3 + Math.floor(Math.random() * 7);
         
-        this.addLog(`${attacker.name} 使用雷劈术，对所有敌人造成 ${damage} 点伤害`, 'log-magic');
+        this.addLog(`${attacker.name} 使用雷劈术，对所有敌人造成 ${damage} 点伤害！`, 'log-magic');
         
         this.characters.forEach(char => {
             if (char.isAlive && char.team !== attacker.team) {
@@ -388,7 +393,7 @@ class NameArena {
         target.burnDamage = damage;
         target.currentHp -= damage;
         
-        this.addLog(`${attacker.name} 对 ${target.name} 扔出火球，造成 ${damage} 点伤害并点燃`, 'log-attack');
+        this.addLog(`${attacker.name} 对 ${target.name} 扔出火球，造成 ${damage} 点伤害并点燃！`, 'log-attack');
         
         if (target.isCharging) {
             target.isCharging = false;
@@ -409,27 +414,116 @@ class NameArena {
             target.currentHp = Math.floor(target.maxHp / 5);
             target.isCharging = false;
             target.isBurning = false;
-            target.isCriticalHealth = false;
+            target.burnDamage = 0;
+            target.isCriticalHealth = false; // 清除濒死状态
+            target.isCharmed = false; // 清除魅惑状态
+            target.charmedTurns = 0;
+            target.team = target.originalTeam; // 恢复原始队伍
             
-            this.addLog(`${attacker.name} 复活了 ${target.name}`, 'log-heal');
+            // 重置属性到初始值（避免濒死状态的影响）
+            this.resetCharacterStats(target);
+            
+            this.addLog(`${attacker.name} 复活了 ${target.name}！`, 'log-heal');
         } else {
             this.addLog(`${attacker.name} 试图复活队友，但没有目标`, 'log-warning');
         }
     }
     
-    // 选择随机敌人
-    selectRandomEnemy(attacker) {
-        const enemies = this.characters.filter(char => 
-            char.isAlive && char.team !== attacker.team
-        );
-        return enemies[Math.floor(Math.random() * enemies.length)];
+    // 新增：魅惑魔法
+    async charmMagic(attacker) {
+        const target = this.selectRandomEnemy(attacker);
+        
+        target.isCharmed = true;
+        target.charmedTurns = 2; // 持续2回合
+        target.team = attacker.team; // 暂时加入攻击者的队伍
+            
+        this.addLog(`${attacker.name} 使用魅惑术，${target.name} 被魅惑了！接下来的2回合将攻击队友`, 'log-magic');
     }
     
-    // 选择随机队友
+    // 新增：处理魅惑状态
+    async processCharmedStatus() {
+        this.characters.forEach(char => {
+            if (char.isAlive && char.isCharmed && char.charmedTurns > 0) {
+                char.charmedTurns--;
+                
+                if (char.charmedTurns <= 0) {
+                    char.isCharmed = false;
+                    char.team = char.originalTeam; // 恢复原始队伍
+                    this.addLog(`${char.name} 的魅惑效果解除了`, 'log-normal');
+                }
+            }
+        });
+    }
+    
+    // 新增：重置角色属性到初始值
+    resetCharacterStats(character) {
+        const hash1 = this.hash1(character.name);
+        const hash2 = this.hash2(character.name);
+        
+        const x = [];
+        let temp = hash1;
+        for (let i = 0; i < 6; i++) {
+            x.push(temp % 10);
+            temp = Math.floor(temp / 10);
+        }
+        
+        const m = [];
+        temp = hash2;
+        for (let i = 0; i < 6; i++) {
+            m.push(temp % 10);
+            temp = Math.floor(temp / 10);
+        }
+        
+        // 重新计算基础属性
+        character.maxHp = 350 + (x[0] || 0) * (x[3] || 0) + 2 * (x[2] || 0) * (x[5] || 0);
+        character.attack = 15 + (x[1] || 0) + (x[4] || 0);
+        character.critical = (5 + ((m[2] || 0) % 8)) * 5;
+        character.defense = (5 + (m[4] || 0)) * 3;
+        character.magic = (((m[0] || 0) % 6) + ((m[5] || 0) % 6) + ((m[1] || 0) % 6)) * 3;
+        
+        // 确保属性至少为1
+        character.maxHp = Math.max(1, character.maxHp);
+        character.attack = Math.max(1, character.attack);
+        character.critical = Math.max(1, character.critical);
+        character.defense = Math.max(1, character.defense);
+        character.magic = Math.max(1, character.magic);
+    }
+    
+    // 选择随机敌人 - 修改版：考虑魅惑状态
+    selectRandomEnemy(attacker) {
+        let enemies;
+        
+        if (attacker.isCharmed) {
+            // 如果被魅惑，将队友视为敌人
+            enemies = this.characters.filter(char => 
+                char.isAlive && char.team === attacker.originalTeam && char.id !== attacker.id
+            );
+        } else {
+            // 正常情况：选择不同队伍的敌人
+            enemies = this.characters.filter(char => 
+                char.isAlive && char.team !== attacker.team
+            );
+        }
+        
+        return enemies.length > 0 ? enemies[Math.floor(Math.random() * enemies.length)] : null;
+    }
+    
+    // 选择随机队友 - 修改版：考虑魅惑状态
     selectRandomAlly(attacker) {
-        const allies = this.characters.filter(char => 
-            char.isAlive && char.team === attacker.team && char.id !== attacker.id
-        );
+        let allies;
+        
+        if (attacker.isCharmed) {
+            // 如果被魅惑，将敌人视为队友
+            allies = this.characters.filter(char => 
+                char.isAlive && char.team !== attacker.originalTeam && char.id !== attacker.id
+            );
+        } else {
+            // 正常情况：选择同队伍的队友
+            allies = this.characters.filter(char => 
+                char.isAlive && char.team === attacker.team && char.id !== attacker.id
+            );
+        }
+        
         return allies.length > 0 ? 
             allies[Math.floor(Math.random() * allies.length)] : attacker;
     }
@@ -514,7 +608,7 @@ class NameArena {
                 char.attack *= 2;
                 char.defense = Math.min(120, char.defense * 2);
                 char.magic = Math.min(80, char.magic * 2);
-                this.addLog(`${char.name} 进入濒死状态，属性大幅提升`, 'log-special');
+                this.addLog(`${char.name} 进入濒死状态，属性大幅提升！`, 'log-special');
             }
         });
     }
@@ -524,6 +618,11 @@ class NameArena {
         if (character.currentHp <= 0 && character.isAlive) {
             character.isAlive = false;
             character.currentHp = 0;
+            character.isCharging = false;
+            character.isBurning = false;
+            character.isCharmed = false;
+            character.charmedTurns = 0;
+            character.team = character.originalTeam; // 恢复原始队伍
             this.addLog(`${character.name} 阵亡`, 'log-death');
         }
     }
@@ -535,7 +634,7 @@ class NameArena {
         const winningTeam = new Set();
         this.characters.forEach(char => {
             if (char.isAlive) {
-                winningTeam.add(char.team);
+                winningTeam.add(char.originalTeam); // 使用原始队伍判断胜利
             }
         });
         
@@ -544,7 +643,7 @@ class NameArena {
         } else {
             const teamNumber = Array.from(winningTeam)[0];
             const winners = this.characters.filter(char => 
-                char.isAlive && char.team === teamNumber
+                char.isAlive && char.originalTeam === teamNumber
             );
             
             this.addLog('战斗结束！', 'log-special');
@@ -576,11 +675,17 @@ class NameArena {
             card.className = 'character-card';
             
             const hpPercent = Math.max(0, (char.currentHp / char.maxHp) * 100);
-            const teamColor = this.getTeamColor(char.team);
+            const teamColor = this.getTeamColor(char.originalTeam); // 使用原始队伍颜色
+            
+            let statusIcons = '';
+            if (!char.isAlive) statusIcons += '💀';
+            if (char.isCharging) statusIcons += '⚡';
+            if (char.isBurning) statusIcons += '🔥';
+            if (char.isCharmed) statusIcons += '💖';
             
             card.innerHTML = `
                 <div class="character-name" style="color: ${teamColor}">
-                    ${char.name} ${!char.isAlive ? '💀' : char.isCharging ? '⚡' : char.isBurning ? '🔥' : ''}
+                    ${char.name} ${statusIcons}
                 </div>
                 <div class="character-stats">
                     <div class="stat-item">
@@ -605,7 +710,7 @@ class NameArena {
                     </div>
                     <div class="stat-item">
                         <span>队伍:</span>
-                        <span>${char.team}</span>
+                        <span>${char.originalTeam}${char.isCharmed ? '(被魅惑)' : ''}</span>
                     </div>
                 </div>
                 <div class="hp-bar">
