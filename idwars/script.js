@@ -212,8 +212,14 @@ class NameArena {
         return aliveChars[Math.floor(Math.random() * aliveChars.length)];
     }
     
-    // 执行行动
+    // 执行行动 - 修复版本
     async performAction(attacker) {
+        // 如果正在蓄力，则强制使用蓄力攻击
+        if (attacker.isCharging) {
+            await this.chargeAttack(attacker);
+            return;
+        }
+        
         const rand = Math.floor(Math.random() * 200) + 1;
         
         if (rand <= attacker.magic) {
