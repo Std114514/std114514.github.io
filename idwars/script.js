@@ -136,7 +136,7 @@ class NameArena {
                     kills: 0,
                     killedBy: null, // 修复：记录被谁杀死
                     combo: 0,
-                    lastComboRound: 0  // 修复：确保初始化为0
+                    omboRound: 0  // 修复：确保初始化为0
                 });
             });
         });
@@ -486,7 +486,7 @@ class NameArena {
             target.team = target.originalTeam; // 恢复原始队伍
             target.killedBy = null; // 清除死亡记录
             target.combo = 0; // 重置连击
-            target.lastComboRound = 0; // 重置连击回合
+            target.omboRound = 0; // 重置连击回合
             
             // 重置属性到初始值（避免濒死状态的影响）
             this.resetCharacterStats(target);
