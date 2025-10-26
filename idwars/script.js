@@ -198,7 +198,6 @@ class NameArena {
             await this.delay(this.currentSpeed);
             
             await this.processBurnDamage();
-            await this.processCharmedStatus(); // 新增：处理魅惑状态
             await this.delay(this.currentSpeed);
             
             this.checkCriticalHealth();
@@ -214,11 +213,20 @@ class NameArena {
         return aliveChars[Math.floor(Math.random() * aliveChars.length)];
     }
     
-    // 执行行动 - 修复版本
+    // 执行行动 - 修复版本（修复魅惑状态计数）
     async performAction(attacker) {
         // 如果正在蓄力，则强制使用蓄力攻击
         if (attacker.isCharging) {
             await this.chargeAttack(attacker);
+            // 蓄力攻击后减少魅惑回合数
+            if (attacker.isCharmed) {
+                attacker.charmedTurns--;
+                if (attacker.charmedTurns <= 0) {
+                    attacker.isCharmed = false;
+                    attacker.team = attacker.originalTeam;
+                    this.addLog(`${attacker.name} 的魅惑效果解除了`, 'log-normal');
+                }
+            }
             return;
         }
         
@@ -231,11 +239,23 @@ class NameArena {
         } else {
             await this.normalAttack(attacker);
         }
+        
+        // 行动结束后减少魅惑回合数
+        if (attacker.isCharmed) {
+            attacker.charmedTurns--;
+            if (attacker.charmedTurns <= 0) {
+                attacker.isCharmed = false;
+                attacker.team = attacker.originalTeam;
+                this.addLog(`${attacker.name} 的魅惑效果解除了`, 'log-normal');
+            }
+        }
     }
     
     // 普通攻击
     async normalAttack(attacker) {
         const target = this.selectRandomEnemy(attacker);
+        if (!target) return;
+        
         const damage = attacker.attack - 3 + Math.floor(Math.random() * 7);
         
         this.addLog(`${attacker.name} 攻击 ${target.name}，造成 ${damage} 点伤害`, 'log-attack');
@@ -246,6 +266,8 @@ class NameArena {
     // 暴击攻击
     async criticalAttack(attacker) {
         const target = this.selectRandomEnemy(attacker);
+        if (!target) return;
+        
         const damage = Math.floor(attacker.attack * 2.5) - 3 + Math.floor(Math.random() * 7);
         
         this.addLog(`${attacker.name} 暴击！对 ${target.name} 造成 ${damage} 点伤害`, 'log-critical');
@@ -303,6 +325,8 @@ class NameArena {
     // 重创魔法
     async heavyStrike(attacker) {
         const target = this.selectRandomEnemy(attacker);
+        if (!target) return;
+        
         const damage = attacker.attack * 5 - 3 + Math.floor(Math.random() * 7);
         
         this.addLog(`${attacker.name} 重创 ${target.name}，造成 ${damage} 点伤害！`, 'log-attack');
@@ -313,6 +337,7 @@ class NameArena {
     // 冰冻术
     async freezeMagic(attacker) {
         const target = this.selectRandomEnemy(attacker);
+        if (!target) return;
         
         target.attack = Math.floor(target.attack * 0.67);
         target.defense = Math.floor(target.defense * 0.67);
@@ -333,6 +358,7 @@ class NameArena {
     // 原子弹
     async nukeMagic(attacker) {
         const target = this.selectRandomEnemy(attacker);
+        if (!target) return;
         
         target.currentHp = Math.floor(target.currentHp / 2);
         this.addLog(`${attacker.name} 扔出原子弹，${target.name} 的 HP 减少一半！`, 'log-special');
@@ -371,6 +397,8 @@ class NameArena {
         } else {
             attacker.isCharging = false;
             const target = this.selectRandomEnemy(attacker);
+            if (!target) return;
+            
             const damage = attacker.attack * 24 - 3 + Math.floor(Math.random() * 7);
             
             this.addLog(`${attacker.name} 蓄力完成，打出了会心一击，对 ${target.name} 造成 ${damage} 点无法抵挡的伤害！！`, 'log-critical');
@@ -387,6 +415,8 @@ class NameArena {
     // 火球术
     async fireballMagic(attacker) {
         const target = this.selectRandomEnemy(attacker);
+        if (!target) return;
+        
         const damage = Math.floor(attacker.attack * 3) - 3 + Math.floor(Math.random() * 7);
         
         target.isBurning = true;
@@ -432,27 +462,13 @@ class NameArena {
     // 新增：魅惑魔法
     async charmMagic(attacker) {
         const target = this.selectRandomEnemy(attacker);
+        if (!target) return;
         
         target.isCharmed = true;
         target.charmedTurns = 2; // 持续2回合
         target.team = attacker.team; // 暂时加入攻击者的队伍
             
         this.addLog(`${attacker.name} 使用魅惑术，${target.name} 被魅惑了！接下来的2回合将攻击队友`, 'log-magic');
-    }
-    
-    // 新增：处理魅惑状态
-    async processCharmedStatus() {
-        this.characters.forEach(char => {
-            if (char.isAlive && char.isCharmed && char.charmedTurns > 0) {
-                char.charmedTurns--;
-                
-                if (char.charmedTurns <= 0) {
-                    char.isCharmed = false;
-                    char.team = char.originalTeam; // 恢复原始队伍
-                    this.addLog(`${char.name} 的魅惑效果解除了`, 'log-normal');
-                }
-            }
-        });
     }
     
     // 新增：重置角色属性到初始值
