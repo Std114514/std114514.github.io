@@ -433,7 +433,7 @@ class NameArena {
             const damage = attacker.attack * 24 - 3 + Math.floor(Math.random() * 7);
             const actualDamage = Math.min(target.currentHp, damage);
             
-            this.addLog(`${attacker.name} 蓄力完成，打出了会心一击，对 ${target.name} 造成 ${actualDamage} 点无法抵挡的伤害！！`, 'log-critical');
+            this.addLog(`${attacker.name} 蓄力完成，打出了会心一击，对 ${target.name} 造成 ${damage} 点无法抵挡的伤害！！`, 'log-critical');
             
             // 直接应用伤害，因为蓄力攻击无法被防御
             target.currentHp -= actualDamage;
