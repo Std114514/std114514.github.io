@@ -459,10 +459,21 @@ class NameArena {
         }
     }
     
-    // 新增：魅惑魔法
+    // 修改后的魅惑魔法 - 添加队伍人数检查
     async charmMagic(attacker) {
         const target = this.selectRandomEnemy(attacker);
         if (!target) return;
+        
+        // 检查目标原始队伍中存活的人数
+        const aliveInTargetTeam = this.characters.filter(char => 
+            char.isAlive && char.originalTeam === target.originalTeam
+        ).length;
+        
+        // 如果目标队伍只有一人，魅惑失败
+        if (aliveInTargetTeam <= 1) {
+            this.addLog(`${attacker.name} 试图魅惑 ${target.name}，但 ${target.name} 的队伍只剩一人，魅惑失败！`, 'log-warning');
+            return;
+        }
         
         target.isCharmed = true;
         target.charmedTurns = 2; // 持续2回合
