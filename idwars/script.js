@@ -134,7 +134,7 @@ class NameArena {
                     reboundSuccess: 0,
                     magicUsed: 0,
                     kills: 0,
-                    lastKill: null,
+                    killedBy: null, // 修复：记录被谁杀死
                     combo: 0,
                     lastComboRound: 0
                 });
@@ -271,7 +271,7 @@ class NameArena {
         
         this.addLog(`${attacker.name} 攻击 ${target.name}，造成 ${damage} 点伤害`, 'log-attack');
         
-        await this.applyDamage(attacker, target, damage, 'normal');
+        await this.applyDamage(attacker, target, damage);
     }
     
     // 暴击攻击
@@ -283,7 +283,7 @@ class NameArena {
         
         this.addLog(`${attacker.name} 暴击！对 ${target.name} 造成 ${damage} 点伤害`, 'log-critical');
         
-        await this.applyDamage(attacker, target, damage, 'critical');
+        await this.applyDamage(attacker, target, damage);
     }
     
     // 使用魔法
@@ -293,6 +293,7 @@ class NameArena {
         // 记录魔法使用
         attacker.magicUsed++;
         attacker.score += 40;
+        this.addLog(`${attacker.name} 使用魔法，获得 40 分`, 'log-normal');
         
         switch (magicType) {
             case 0:
@@ -346,7 +347,7 @@ class NameArena {
         
         this.addLog(`${attacker.name} 重创 ${target.name}，造成 ${damage} 点伤害！`, 'log-attack');
         
-        await this.applyDamage(attacker, target, damage, 'magic');
+        await this.applyDamage(attacker, target, damage);
     }
     
     // 冰冻术
@@ -381,7 +382,7 @@ class NameArena {
         this.addLog(`${attacker.name} 扔出原子弹，${target.name} 的 HP 减少一半！`, 'log-special');
         
         // 记录伤害
-        this.recordDamage(attacker, target, damage, 'magic');
+        this.recordDamage(attacker, target, damage);
         
         if (target.isCharging) {
             target.isCharging = false;
@@ -403,7 +404,7 @@ class NameArena {
                 char.currentHp -= actualDamage;
                 
                 // 记录伤害
-                this.recordDamage(attacker, char, actualDamage, 'magic');
+                this.recordDamage(attacker, char, actualDamage);
                 
                 if (char.isCharging) {
                     char.isCharging = false;
@@ -428,7 +429,16 @@ class NameArena {
             
             this.addLog(`${attacker.name} 蓄力完成，打出了会心一击，对 ${target.name} 造成 ${damage} 点无法抵挡的伤害！！`, 'log-critical');
             
-            await this.applyDamage(attacker, target, damage, 'charge');
+            // 直接应用伤害，因为蓄力攻击无法被防御
+            const actualDamage = Math.min(target.currentHp, damage);
+            target.currentHp -= actualDamage;
+            this.recordDamage(attacker, target, actualDamage);
+            
+            if (target.isCharging) {
+                target.isCharging = false;
+                this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
+            }
+            this.checkDeath(target, attacker);
         }
     }
     
@@ -444,7 +454,7 @@ class NameArena {
         
         this.addLog(`${attacker.name} 对 ${target.name} 扔出火球，造成 ${damage} 点伤害并点燃！`, 'log-attack');
         
-        await this.applyDamage(attacker, target, damage, 'magic');
+        await this.applyDamage(attacker, target, damage);
         
         if (target.isCharging) {
             target.isCharging = false;
@@ -469,6 +479,7 @@ class NameArena {
             target.isCharmed = false; // 清除魅惑状态
             target.charmedTurns = 0;
             target.team = target.originalTeam; // 恢复原始队伍
+            target.killedBy = null; // 清除死亡记录
             
             // 重置属性到初始值（避免濒死状态的影响）
             this.resetCharacterStats(target);
@@ -503,7 +514,7 @@ class NameArena {
     }
     
     // 应用伤害 - 修改版，包含积分计算
-    async applyDamage(attacker, target, damage, type) {
+    async applyDamage(attacker, target, damage) {
         const defenseResult = this.defenseCheck(target.defense);
         
         switch (defenseResult) {
@@ -511,12 +522,14 @@ class NameArena {
                 this.addLog(`${target.name} 防御成功`, 'log-defend');
                 target.defendSuccess++;
                 target.score += 20;
+                this.addLog(`${target.name} 防御成功，获得 20 分`, 'log-normal');
                 break;
                 
             case 2: // 反弹
                 this.addLog(`${target.name} 反弹伤害`, 'log-defend');
                 target.reboundSuccess++;
                 target.score += 90;
+                this.addLog(`${target.name} 反弹成功，获得 90 分`, 'log-normal');
                 
                 const reboundResult = this.defenseCheck(attacker.defense);
                 
@@ -524,11 +537,12 @@ class NameArena {
                     this.addLog(`${attacker.name} 再次反弹`, 'log-defend');
                     attacker.reboundSuccess++;
                     attacker.score += 90;
+                    this.addLog(`${attacker.name} 再次反弹，获得 90 分`, 'log-normal');
                     
                     // 反弹给原目标
                     const actualDamage = Math.min(target.currentHp, damage);
                     target.currentHp -= actualDamage;
-                    this.recordDamage(attacker, target, actualDamage, type);
+                    this.recordDamage(attacker, target, actualDamage);
                     
                     if (target.isCharging) {
                         target.isCharging = false;
@@ -538,18 +552,19 @@ class NameArena {
                     this.addLog(`${attacker.name} 防御成功`, 'log-defend');
                     attacker.defendSuccess++;
                     attacker.score += 20;
+                    this.addLog(`${attacker.name} 防御成功，获得 20 分`, 'log-normal');
                 } else {
                     // 反弹给攻击者
                     const actualDamage = Math.min(attacker.currentHp, damage);
                     attacker.currentHp -= actualDamage;
-                    this.recordDamage(target, attacker, actualDamage, 'rebound');
+                    this.recordDamage(target, attacker, actualDamage);
                 }
                 break;
                 
             default: // 防御失败
                 const actualDamage = Math.min(target.currentHp, damage);
                 target.currentHp -= actualDamage;
-                this.recordDamage(attacker, target, actualDamage, type);
+                this.recordDamage(attacker, target, actualDamage);
                 
                 if (target.isCharging) {
                     target.isCharging = false;
@@ -565,7 +580,7 @@ class NameArena {
     }
     
     // 记录伤害并计算积分
-    recordDamage(attacker, target, actualDamage, type) {
+    recordDamage(attacker, target, actualDamage) {
         // 更新连击
         if (attacker.lastComboRound === this.round) {
             attacker.combo++;
@@ -655,7 +670,7 @@ class NameArena {
                 // 记录击杀
                 killer.kills++;
                 killer.score += 200;
-                killer.lastKill = character.name;
+                character.killedBy = killer.name; // 修复：记录谁杀死了这个角色
                 this.addLog(`${character.name} 被 ${killer.name} 击杀！${killer.name} 获得 200 分`, 'log-death');
             } else {
                 this.addLog(`${character.name} 阵亡`, 'log-death');
@@ -691,25 +706,49 @@ class NameArena {
         this.showRankings();
     }
     
-    // 显示MVP和排行榜
+    // 使用HTML表格的版本
     showRankings() {
-        // 排序角色按积分
-        const rankedCharacters = [...this.characters].sort((a, b) => b.score - a.score);
+        const logContainer = document.getElementById('battleLog');
         
+        // MVP显示
         this.addLog('', 'log-normal');
         this.addLog('=== 本场MVP ===', 'log-special');
+        
+        const rankedCharacters = [...this.characters].sort((a, b) => b.score - a.score);
         if (rankedCharacters.length > 0) {
             const mvp = rankedCharacters[0];
             this.addLog(`🏆 ${mvp.name} - ${mvp.score}分`, 'log-special');
         }
         
+        // 积分排行榜表格
         this.addLog('', 'log-normal');
         this.addLog('=== 积分排行榜 ===', 'log-special');
         
+        const scoreTable = document.createElement('div');
+        scoreTable.className = 'log-table';
+        scoreTable.innerHTML = `
+            <div class="table-row table-header">
+                <div class="table-cell">排名</div>
+                <div class="table-cell">ID</div>
+                <div class="table-cell">积分</div>
+                <div class="table-cell">最后一击</div>
+            </div>
+        `;
+        
         rankedCharacters.forEach((char, index) => {
-            const killInfo = char.lastKill ? `最后一击：${char.lastKill}` : '最后一击：无';
-            this.addLog(`${index + 1}. ${char.name} ${char.score}分 ${killInfo}`, 'log-normal');
+            const row = document.createElement('div');
+            row.className = 'table-row';
+            const status = char.killedBy ? `${char.killedBy}` : '存活';
+            row.innerHTML = `
+                <div class="table-cell">${index + 1}</div>
+                <div class="table-cell">${char.name}</div>
+                <div class="table-cell">${char.score}</div>
+                <div class="table-cell">${status}</div>
+            `;
+            scoreTable.appendChild(row);
         });
+        
+        logContainer.appendChild(scoreTable);
     }
     
     // 新增：重置角色属性到初始值
