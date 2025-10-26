@@ -125,7 +125,18 @@ class NameArena {
                     isCriticalHealth: false,
                     isCharmed: false, // 新增：魅惑状态
                     charmedTurns: 0,  // 新增：魅惑剩余回合数
-                    originalTeam: teamIndex + 1 // 新增：原始队伍
+                    originalTeam: teamIndex + 1, // 新增：原始队伍
+                    
+                    // 积分系统
+                    score: 0,
+                    totalDamage: 0,
+                    defendSuccess: 0,
+                    reboundSuccess: 0,
+                    magicUsed: 0,
+                    kills: 0,
+                    lastKill: null,
+                    combo: 0,
+                    lastComboRound: 0
                 });
             });
         });
@@ -260,7 +271,7 @@ class NameArena {
         
         this.addLog(`${attacker.name} 攻击 ${target.name}，造成 ${damage} 点伤害`, 'log-attack');
         
-        await this.applyDamage(target, damage, attacker);
+        await this.applyDamage(attacker, target, damage, 'normal');
     }
     
     // 暴击攻击
@@ -272,12 +283,16 @@ class NameArena {
         
         this.addLog(`${attacker.name} 暴击！对 ${target.name} 造成 ${damage} 点伤害`, 'log-critical');
         
-        await this.applyDamage(target, damage, attacker);
+        await this.applyDamage(attacker, target, damage, 'critical');
     }
     
     // 使用魔法
     async useMagic(attacker) {
         const magicType = Math.floor(Math.random() * 10); // 改为0-9，增加魅惑技能
+        
+        // 记录魔法使用
+        attacker.magicUsed++;
+        attacker.score += 40;
         
         switch (magicType) {
             case 0:
@@ -331,7 +346,7 @@ class NameArena {
         
         this.addLog(`${attacker.name} 重创 ${target.name}，造成 ${damage} 点伤害！`, 'log-attack');
         
-        await this.applyDamage(target, damage, attacker);
+        await this.applyDamage(attacker, target, damage, 'magic');
     }
     
     // 冰冻术
@@ -360,15 +375,20 @@ class NameArena {
         const target = this.selectRandomEnemy(attacker);
         if (!target) return;
         
-        target.currentHp = Math.floor(target.currentHp / 2);
+        const damage = Math.floor(target.currentHp / 2);
+        target.currentHp -= damage;
+        
         this.addLog(`${attacker.name} 扔出原子弹，${target.name} 的 HP 减少一半！`, 'log-special');
+        
+        // 记录伤害
+        this.recordDamage(attacker, target, damage, 'magic');
         
         if (target.isCharging) {
             target.isCharging = false;
             this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
         }
         
-        this.checkDeath(target);
+        this.checkDeath(target, attacker);
     }
     
     // 雷劈术
@@ -379,12 +399,17 @@ class NameArena {
         
         this.characters.forEach(char => {
             if (char.isAlive && char.team !== attacker.team) {
-                char.currentHp -= damage;
+                const actualDamage = Math.min(char.currentHp, damage);
+                char.currentHp -= actualDamage;
+                
+                // 记录伤害
+                this.recordDamage(attacker, char, actualDamage, 'magic');
+                
                 if (char.isCharging) {
                     char.isCharging = false;
                     this.addLog(`${char.name} 的蓄力被打断了！`, 'log-warning');
                 }
-                this.checkDeath(char);
+                this.checkDeath(char, attacker);
             }
         });
     }
@@ -403,12 +428,7 @@ class NameArena {
             
             this.addLog(`${attacker.name} 蓄力完成，打出了会心一击，对 ${target.name} 造成 ${damage} 点无法抵挡的伤害！！`, 'log-critical');
             
-            target.currentHp -= damage;
-            if (target.isCharging) {
-                target.isCharging = false;
-                this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
-            }
-            this.checkDeath(target);
+            await this.applyDamage(attacker, target, damage, 'charge');
         }
     }
     
@@ -421,15 +441,15 @@ class NameArena {
         
         target.isBurning = true;
         target.burnDamage = damage;
-        target.currentHp -= damage;
         
         this.addLog(`${attacker.name} 对 ${target.name} 扔出火球，造成 ${damage} 点伤害并点燃！`, 'log-attack');
+        
+        await this.applyDamage(attacker, target, damage, 'magic');
         
         if (target.isCharging) {
             target.isCharging = false;
             this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
         }
-        this.checkDeath(target);
     }
     
     // 复活魔法
@@ -480,6 +500,202 @@ class NameArena {
         target.team = attacker.team; // 暂时加入攻击者的队伍
             
         this.addLog(`${attacker.name} 使用魅惑术，${target.name} 被魅惑了！接下来的2回合将攻击队友`, 'log-magic');
+    }
+    
+    // 应用伤害 - 修改版，包含积分计算
+    async applyDamage(attacker, target, damage, type) {
+        const defenseResult = this.defenseCheck(target.defense);
+        
+        switch (defenseResult) {
+            case 1: // 防御成功
+                this.addLog(`${target.name} 防御成功`, 'log-defend');
+                target.defendSuccess++;
+                target.score += 20;
+                break;
+                
+            case 2: // 反弹
+                this.addLog(`${target.name} 反弹伤害`, 'log-defend');
+                target.reboundSuccess++;
+                target.score += 90;
+                
+                const reboundResult = this.defenseCheck(attacker.defense);
+                
+                if (reboundResult === 2) {
+                    this.addLog(`${attacker.name} 再次反弹`, 'log-defend');
+                    attacker.reboundSuccess++;
+                    attacker.score += 90;
+                    
+                    // 反弹给原目标
+                    const actualDamage = Math.min(target.currentHp, damage);
+                    target.currentHp -= actualDamage;
+                    this.recordDamage(attacker, target, actualDamage, type);
+                    
+                    if (target.isCharging) {
+                        target.isCharging = false;
+                        this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
+                    }
+                } else if (reboundResult === 1) {
+                    this.addLog(`${attacker.name} 防御成功`, 'log-defend');
+                    attacker.defendSuccess++;
+                    attacker.score += 20;
+                } else {
+                    // 反弹给攻击者
+                    const actualDamage = Math.min(attacker.currentHp, damage);
+                    attacker.currentHp -= actualDamage;
+                    this.recordDamage(target, attacker, actualDamage, 'rebound');
+                }
+                break;
+                
+            default: // 防御失败
+                const actualDamage = Math.min(target.currentHp, damage);
+                target.currentHp -= actualDamage;
+                this.recordDamage(attacker, target, actualDamage, type);
+                
+                if (target.isCharging) {
+                    target.isCharging = false;
+                    this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
+                }
+                break;
+        }
+        
+        this.checkDeath(target, attacker);
+        if (attacker.currentHp <= 0) {
+            this.checkDeath(attacker, target);
+        }
+    }
+    
+    // 记录伤害并计算积分
+    recordDamage(attacker, target, actualDamage, type) {
+        // 更新连击
+        if (attacker.lastComboRound === this.round) {
+            attacker.combo++;
+        } else {
+            attacker.combo = 1;
+            attacker.lastComboRound = this.round;
+        }
+        
+        // 计算基础积分
+        let damageScore = actualDamage;
+        
+        // 连击加成
+        if (attacker.combo > 1) {
+            damageScore = Math.floor(damageScore * Math.pow(1.4, attacker.combo - 1));
+        }
+        
+        // 更新积分和伤害统计
+        attacker.score += damageScore;
+        attacker.totalDamage += actualDamage;
+        
+        this.addLog(`${attacker.name} 造成 ${actualDamage} 点伤害，获得 ${damageScore} 分${attacker.combo > 1 ? ` (连击x${attacker.combo})` : ''}`, 'log-normal');
+    }
+    
+    // 处理燃烧伤害 - 修复版本
+    async processBurnDamage() {
+        this.characters.forEach(char => {
+            if (char.isAlive && char.isBurning && char.burnDamage > 0) {
+                // 计算当前回合的燃烧伤害
+                const burnDmg = Math.floor(char.burnDamage * 0.4);
+                
+                if (burnDmg > 0) {
+                    const actualDamage = Math.min(char.currentHp, burnDmg);
+                    char.currentHp -= actualDamage;
+                    
+                    // 燃烧伤害不计入连击，但计入积分
+                    char.score += actualDamage;
+                    char.totalDamage += actualDamage;
+                    
+                    this.addLog(`${char.name} 受到 ${actualDamage} 点燃烧伤害`, 'log-attack');
+                    this.checkDeath(char);
+                    
+                    // 更新燃烧伤害为下一回合的值（乘以0.4并向下取整）
+                    char.burnDamage = Math.floor(char.burnDamage * 0.4);
+                    
+                    // 如果下一回合的燃烧伤害为0，清除燃烧状态
+                    if (char.burnDamage <= 0) {
+                        char.isBurning = false;
+                        char.burnDamage = 0;
+                        this.addLog(`${char.name} 的燃烧效果消失了`, 'log-normal');
+                    }
+                } else {
+                    // 如果当前燃烧伤害为0，清除燃烧状态
+                    char.isBurning = false;
+                    char.burnDamage = 0;
+                    this.addLog(`${char.name} 的燃烧效果消失了`, 'log-normal');
+                }
+            }
+        });
+    }
+    
+    // 检查死亡 - 修改版，包含击杀积分
+    checkDeath(character, killer = null) {
+        if (character.currentHp <= 0 && character.isAlive) {
+            character.isAlive = false;
+            character.currentHp = 0;
+            character.isCharging = false;
+            character.isBurning = false;
+            character.isCharmed = false;
+            character.charmedTurns = 0;
+            character.team = character.originalTeam; // 恢复原始队伍
+            
+            if (killer) {
+                // 记录击杀
+                killer.kills++;
+                killer.score += 200;
+                killer.lastKill = character.name;
+                this.addLog(`${character.name} 被 ${killer.name} 击杀！${killer.name} 获得 200 分`, 'log-death');
+            } else {
+                this.addLog(`${character.name} 阵亡`, 'log-death');
+            }
+        }
+    }
+    
+    // 结束战斗 - 修改版，显示MVP和排行榜
+    endBattle() {
+        this.isFighting = false;
+        
+        const winningTeam = new Set();
+        this.characters.forEach(char => {
+            if (char.isAlive) {
+                winningTeam.add(char.originalTeam); // 使用原始队伍判断胜利
+            }
+        });
+        
+        if (winningTeam.size === 0) {
+            this.addLog('全军覆没！', 'log-death');
+        } else {
+            const teamNumber = Array.from(winningTeam)[0];
+            const winners = this.characters.filter(char => 
+                char.isAlive && char.originalTeam === teamNumber
+            );
+            
+            this.addLog('战斗结束！', 'log-special');
+            this.addLog(`第 ${teamNumber} 队取得了胜利！`, 'log-special');
+            this.addLog('胜利者：' + winners.map(w => w.name).join('、'), 'log-special');
+        }
+        
+        // 显示MVP和排行榜
+        this.showRankings();
+    }
+    
+    // 显示MVP和排行榜
+    showRankings() {
+        // 排序角色按积分
+        const rankedCharacters = [...this.characters].sort((a, b) => b.score - a.score);
+        
+        this.addLog('', 'log-normal');
+        this.addLog('=== 本场MVP ===', 'log-special');
+        if (rankedCharacters.length > 0) {
+            const mvp = rankedCharacters[0];
+            this.addLog(`🏆 ${mvp.name} - ${mvp.score}分`, 'log-special');
+        }
+        
+        this.addLog('', 'log-normal');
+        this.addLog('=== 积分排行榜 ===', 'log-special');
+        
+        rankedCharacters.forEach((char, index) => {
+            const killInfo = char.lastKill ? `最后一击：${char.lastKill}` : '最后一击：无';
+            this.addLog(`${index + 1}. ${char.name} ${char.score}分 ${killInfo}`, 'log-normal');
+        });
     }
     
     // 新增：重置角色属性到初始值
@@ -555,130 +771,6 @@ class NameArena {
             allies[Math.floor(Math.random() * allies.length)] : attacker;
     }
     
-    // 应用伤害
-    async applyDamage(target, damage, attacker) {
-        const defenseResult = this.defenseCheck(target.defense);
-        
-        switch (defenseResult) {
-            case 1:
-                this.addLog(`${target.name} 防御成功`, 'log-defend');
-                break;
-            case 2:
-                this.addLog(`${target.name} 反弹伤害`, 'log-defend');
-                const reboundResult = this.defenseCheck(attacker.defense);
-                
-                if (reboundResult === 2) {
-                    this.addLog(`${attacker.name} 再次反弹`, 'log-defend');
-                    target.currentHp -= damage;
-                    if (target.isCharging) {
-                        target.isCharging = false;
-                        this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
-                    }
-                } else if (reboundResult === 1) {
-                    this.addLog(`${attacker.name} 防御成功`, 'log-defend');
-                } else {
-                    attacker.currentHp -= damage;
-                }
-                break;
-            default:
-                target.currentHp -= damage;
-                if (target.isCharging) {
-                    target.isCharging = false;
-                    this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
-                }
-                break;
-        }
-        
-        this.checkDeath(target);
-        if (attacker.currentHp <= 0) {
-            this.checkDeath(attacker);
-        }
-    }
-    
-    // 处理燃烧伤害 - 修复版本
-    async processBurnDamage() {
-        this.characters.forEach(char => {
-            if (char.isAlive && char.isBurning && char.burnDamage > 0) {
-                // 计算当前回合的燃烧伤害
-                const burnDmg = Math.floor(char.burnDamage * 0.4);
-                
-                if (burnDmg > 0) {
-                    char.currentHp -= burnDmg;
-                    this.addLog(`${char.name} 受到 ${burnDmg} 点燃烧伤害`, 'log-attack');
-                    this.checkDeath(char);
-                    
-                    // 更新燃烧伤害为下一回合的值（乘以0.4并向下取整）
-                    char.burnDamage = Math.floor(char.burnDamage * 0.4);
-                    
-                    // 如果下一回合的燃烧伤害为0，清除燃烧状态
-                    if (char.burnDamage <= 0) {
-                        char.isBurning = false;
-                        char.burnDamage = 0;
-                        this.addLog(`${char.name} 的燃烧效果消失了`, 'log-normal');
-                    }
-                } else {
-                    // 如果当前燃烧伤害为0，清除燃烧状态
-                    char.isBurning = false;
-                    char.burnDamage = 0;
-                    this.addLog(`${char.name} 的燃烧效果消失了`, 'log-normal');
-                }
-            }
-        });
-    }
-    
-    // 检查濒死状态
-    checkCriticalHealth() {
-        this.characters.forEach(char => {
-            if (char.isAlive && !char.isCriticalHealth && 
-                char.currentHp <= char.maxHp * 0.1) {
-                char.isCriticalHealth = true;
-                char.attack *= 2;
-                char.defense = Math.min(120, char.defense * 2);
-                char.magic = Math.min(80, char.magic * 2);
-                this.addLog(`${char.name} 进入濒死状态，属性大幅提升！`, 'log-special');
-            }
-        });
-    }
-    
-    // 检查死亡
-    checkDeath(character) {
-        if (character.currentHp <= 0 && character.isAlive) {
-            character.isAlive = false;
-            character.currentHp = 0;
-            character.isCharging = false;
-            character.isBurning = false;
-            character.isCharmed = false;
-            character.charmedTurns = 0;
-            character.team = character.originalTeam; // 恢复原始队伍
-            this.addLog(`${character.name} 阵亡`, 'log-death');
-        }
-    }
-    
-    // 结束战斗
-    endBattle() {
-        this.isFighting = false;
-        
-        const winningTeam = new Set();
-        this.characters.forEach(char => {
-            if (char.isAlive) {
-                winningTeam.add(char.originalTeam); // 使用原始队伍判断胜利
-            }
-        });
-        
-        if (winningTeam.size === 0) {
-            this.addLog('全军覆没！', 'log-death');
-        } else {
-            const teamNumber = Array.from(winningTeam)[0];
-            const winners = this.characters.filter(char => 
-                char.isAlive && char.originalTeam === teamNumber
-            );
-            
-            this.addLog('战斗结束！', 'log-special');
-            this.addLog(`第 ${teamNumber} 队取得了胜利！`, 'log-special');
-            this.addLog('胜利者：' + winners.map(w => w.name).join('、'), 'log-special');
-        }
-    }
-    
     // 添加日志
     addLog(message, className = 'log-normal') {
         const logEntry = document.createElement('div');
@@ -734,6 +826,10 @@ class NameArena {
                     <div class="stat-item">
                         <span>魔法:</span>
                         <span>${char.magic}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>积分:</span>
+                        <span>${char.score}</span>
                     </div>
                     <div class="stat-item">
                         <span>队伍:</span>
