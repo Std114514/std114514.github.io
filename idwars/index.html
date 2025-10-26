@@ -211,7 +211,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 12px;
-            max-height: 500px;
+            max-height: 800px;
             overflow-y: auto;
             padding: 10px;
             border: 1px solid #ddd;
@@ -696,7 +696,7 @@
                 // 记录魔法使用
                 attacker.magicUsed++;
                 attacker.score += 40;
-                this.addLog(`${attacker.name} 使用魔法，获得 40 分`, 'log-normal');
+//              this.addLog(`${attacker.name} 使用魔法，获得 40 分`, 'log-normal');
                 
                 switch (magicType) {
                     case 0:
@@ -818,7 +818,7 @@
                         attacker.score += actualDamage;
                         attacker.totalDamage += actualDamage;
                         
-                        this.addLog(`雷劈术对 ${char.name} 造成 ${actualDamage} 点伤害，获得 ${actualDamage} 分`, 'log-normal');
+//                      this.addLog(`雷劈术对 ${char.name} 造成 ${actualDamage} 点伤害，获得 ${actualDamage} 分`, 'log-normal');
                         
                         if (char.isCharging) {
                             char.isCharging = false;
@@ -943,7 +943,7 @@
                         this.addLog(`${target.name} 防御成功`, 'log-defend');
                         target.defendSuccess++;
                         target.score += 20;
-                        this.addLog(`${target.name} 防御成功，获得 20 分`, 'log-normal');
+//                      this.addLog(`${target.name} 防御成功，获得 20 分`, 'log-normal');
                         break;
                         
                     case 2: // 反弹
@@ -955,7 +955,7 @@
                             this.addLog(`${attacker.name} 再次反弹`, 'log-defend');
                             attacker.reboundSuccess++;
                             attacker.score += 90;
-                            this.addLog(`${attacker.name} 再次反弹，获得 90 分`, 'log-normal');
+//                          this.addLog(`${attacker.name} 再次反弹，获得 90 分`, 'log-normal');
                             
                             // 反弹给原目标
                             const actualDamage = Math.min(target.currentHp, damage);
@@ -973,12 +973,12 @@
                             this.addLog(`${attacker.name} 防御成功`, 'log-defend');
                             attacker.defendSuccess++;
                             attacker.score += 20;
-                            this.addLog(`${attacker.name} 防御成功，获得 20 分`, 'log-normal');
+//                          this.addLog(`${attacker.name} 防御成功，获得 20 分`, 'log-normal');
                         } else {
                             // 反弹成功 - 只有在这种情况下才算真正的反弹成功
                             target.reboundSuccess++;
                             target.score += 90;
-                            this.addLog(`${target.name} 反弹成功，获得 90 分`, 'log-normal');
+//                          this.addLog(`${target.name} 反弹成功，获得 90 分`, 'log-normal');
                             
                             // 反弹给攻击者
                             const actualDamage = Math.min(attacker.currentHp, damage);
@@ -1050,13 +1050,14 @@
                 // 连击加成
                 if (attacker.combo > 1) {
                     damageScore = Math.floor(damageScore * Math.pow(1.4, attacker.combo - 1));
+					this.addLog(`${attacker.name} COMBO X ${attacker.combo} !!`, 'log-normal');
                 }
                 
                 // 更新积分和伤害统计
                 attacker.score += damageScore;
                 attacker.totalDamage += actualDamage;
                 
-                this.addLog(`${attacker.name} 造成 ${actualDamage} 点伤害，获得 ${damageScore} 分${attacker.combo > 1 ? ` (连击x${attacker.combo})` : ''}`, 'log-normal');
+//              this.addLog(`${attacker.name} 造成 ${actualDamage} 点伤害，获得 ${damageScore} 分${attacker.combo > 1 ? ` (连击x${attacker.combo})` : ''}`, 'log-normal');
             }
             
             // 处理燃烧伤害 - 修复版本
