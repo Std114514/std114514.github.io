@@ -625,6 +625,20 @@ class NameArena {
             }
         });
     }
+
+    // 检查濒死状态
+    checkCriticalHealth() {
+        this.characters.forEach(char => {
+            if (char.isAlive && !char.isCriticalHealth && 
+                char.currentHp <= char.maxHp * 0.1) {
+                char.isCriticalHealth = true;
+                char.attack *= 2;
+                char.defense = Math.min(120, char.defense * 2);
+                char.magic = Math.min(80, char.magic * 2);
+                this.addLog(`${char.name} 进入濒死状态，属性大幅提升！`, 'log-special');
+            }
+        });
+    }
     
     // 检查死亡 - 修改版，包含击杀积分
     checkDeath(character, killer = null) {
