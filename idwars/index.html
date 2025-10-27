@@ -529,6 +529,7 @@
                             isCharmed: false, // 新增：魅惑状态
                             charmedTurns: 0,  // 新增：魅惑剩余回合数
                             originalTeam: teamIndex + 1, // 新增：原始队伍
+							burnCaster: null, // 新增：火球施放者
                             
                             // 积分系统
                             score: 0,
@@ -612,7 +613,7 @@
                     await this.performAction(attacker);
                     await this.delay(this.currentSpeed);
                     
-                    await this.processBurnDamage();
+                    await this.urnDamage();
                     await this.delay(this.currentSpeed);
                     
                     this.checkCriticalHealth();
@@ -862,24 +863,25 @@
             }
             
             // 火球术
-            async fireballMagic(attacker) {
-                const target = this.selectRandomEnemy(attacker);
-                if (!target) return;
-                
-                const damage = Math.floor(attacker.attack * 3) - 3 + Math.floor(Math.random() * 7);
-                
-                target.isBurning = true;
-                target.burnDamage = damage;
-                
-                this.addLog(`${attacker.name} 对 ${target.name} 扔出火球，造成 ${damage} 点伤害并点燃！`, 'log-attack');
-                
-                await this.applyDamage(attacker, target, damage);
-                
-                if (target.isCharging) {
-                    target.isCharging = false;
-                    this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
-                }
-            }
+			async fireballMagic(attacker) {
+			    const target = this.selectRandomEnemy(attacker);
+			    if (!target) return;
+			    
+			    const damage = Math.floor(attacker.attack * 3) - 3 + Math.floor(Math.random() * 7);
+			    
+			    target.isBurning = true;
+			    target.burnDamage = damage;
+			    target.burnCaster = attacker; // 新增：记录火球施放者
+			    
+			    this.addLog(`${attacker.name} 对 ${target.name} 扔出火球，造成 ${damage} 点伤害并点燃！`, 'log-attack');
+			    
+			    await this.applyDamage(attacker, target, damage);
+			    
+			    if (target.isCharging) {
+			        target.isCharging = false;
+			        this.addLog(`${target.name} 的蓄力被打断了！`, 'log-warning');
+			    }
+			}
             
             // 复活魔法
             async resurrectMagic(attacker) {
@@ -894,6 +896,7 @@
                     target.isCharging = false;
                     target.isBurning = false;
                     target.burnDamage = 0;
+					target.burnCaster = null; // 新增：清除火球施放者记录
                     target.isCriticalHealth = false; // 清除濒死状态
                     target.isCharmed = false; // 清除魅惑状态
                     target.charmedTurns = 0;
@@ -1062,44 +1065,48 @@
             }
             
             // 处理燃烧伤害 - 修复版本
-            async processBurnDamage() {
-                this.characters.forEach(char => {
-                    if (char.isAlive && char.isBurning && char.burnDamage > 0) {
-                        // 计算当前回合的燃烧伤害
-                        const burnDmg = Math.floor(char.burnDamage * 0.4);
-                        
-                        if (burnDmg > 0) {
-                            const actualDamage = Math.min(char.currentHp, burnDmg);
-                            char.currentHp -= actualDamage;
-                            
-                            // 记录受到伤害的回合
-                            this.recordDamagedRound(char);
-                            
-                            // 燃烧伤害不计入连击，但计入积分
-                            char.score += actualDamage;
-                            char.totalDamage += actualDamage;
-                            
-                            this.addLog(`${char.name} 受到 ${actualDamage} 点燃烧伤害`, 'log-attack');
-                            this.checkDeath(char);
-                            
-                            // 更新燃烧伤害为下一回合的值（乘以0.4并向下取整）
-                            char.burnDamage = Math.floor(char.burnDamage * 0.4);
-                            
-                            // 如果下一回合的燃烧伤害为0，清除燃烧状态
-                            if (char.burnDamage <= 0) {
-                                char.isBurning = false;
-                                char.burnDamage = 0;
-                                this.addLog(`${char.name} 的燃烧效果消失了`, 'log-normal');
-                            }
-                        } else {
-                            // 如果当前燃烧伤害为0，清除燃烧状态
-                            char.isBurning = false;
-                            char.burnDamage = 0;
-                            this.addLog(`${char.name} 的燃烧效果消失了`, 'log-normal');
-                        }
-                    }
-                });
-            }
+			async processBurnDamage() {
+			    this.characters.forEach(char => {
+			        if (char.isAlive && char.isBurning && char.burnDamage > 0) {
+			            // 计算当前回合的燃烧伤害
+			            const burnDmg = Math.floor(char.burnDamage * 0.4);
+			            
+			            if (burnDmg > 0) {
+			                const actualDamage = Math.min(char.currentHp, burnDmg);
+			                char.currentHp -= actualDamage;
+			                
+			                // 记录受到伤害的回合
+			                this.recordDamagedRound(char);
+			                
+			                // 燃烧伤害不计入连击，但计入积分
+			                char.score += actualDamage;
+			                char.totalDamage += actualDamage;
+			                
+			                this.addLog(`${char.name} 受到 ${actualDamage} 点燃烧伤害`, 'log-attack');
+			                
+			                // 修复：检查死亡时传递火球施放者作为杀手
+			                this.checkDeath(char, char.burnCaster); // 使用burnCaster作为杀手
+			                
+			                // 更新燃烧伤害为下一回合的值（乘以0.4并向下取整）
+			                char.burnDamage = Math.floor(char.burnDamage * 0.4);
+			                
+			                // 如果下一回合的燃烧伤害为0，清除燃烧状态
+			                if (char.burnDamage <= 0) {
+			                    char.isBurning = false;
+			                    char.burnDamage = 0;
+			                    char.burnCaster = null; // 清除火球施放者记录
+			                    this.addLog(`${char.name} 的燃烧效果消失了`, 'log-normal');
+			                }
+			            } else {
+			                // 如果当前燃烧伤害为0，清除燃烧状态
+			                char.isBurning = false;
+			                char.burnDamage = 0;
+			                char.burnCaster = null; // 清除火球施放者记录
+			                this.addLog(`${char.name} 的燃烧效果消失了`, 'log-normal');
+			            }
+			        }
+			    });
+			}
 
             // 检查濒死状态
             checkCriticalHealth() {
@@ -1198,7 +1205,7 @@
                 rankedCharacters.forEach((char, index) => {
                     const row = document.createElement('div');
                     row.className = 'table-row';
-                    const status = char.killedBy ? `${char.killedBy}` : '存活';
+                    const status = char.killedBy ? `${char.killedBy}` : (char.burnCaster ? `${char.burnCaster}` : '存活');
                     row.innerHTML = `
                         <div class="table-cell">${index + 1}</div>
                         <div class="table-cell">${char.name}</div>
