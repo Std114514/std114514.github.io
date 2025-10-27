@@ -816,7 +816,7 @@
                         this.recordDamagedRound(char);
                         
                         // 直接增加积分，不触发连击
-                        attacker.score += actualDamage;
+                        attacker.score += Math.floor(actualDamage * 0.33);
                         attacker.totalDamage += actualDamage;
                         
 //                      this.addLog(`雷劈术对 ${char.name} 造成 ${actualDamage} 点伤害，获得 ${actualDamage} 分`, 'log-normal');
