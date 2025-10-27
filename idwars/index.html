@@ -613,7 +613,7 @@
                     await this.performAction(attacker);
                     await this.delay(this.currentSpeed);
                     
-                    await this.urnDamage();
+                    await this.processBurnDamage();
                     await this.delay(this.currentSpeed);
                     
                     this.checkCriticalHealth();
@@ -870,7 +870,7 @@
 			    const damage = Math.floor(attacker.attack * 3) - 3 + Math.floor(Math.random() * 7);
 			    
 			    target.isBurning = true;
-			    target.burnDamage = damage;
+			    target. = damage;
 			    target.burnCaster = attacker; // 新增：记录火球施放者
 			    
 			    this.addLog(`${attacker.name} 对 ${target.name} 扔出火球，造成 ${damage} 点伤害并点燃！`, 'log-attack');
@@ -895,7 +895,7 @@
                     target.currentHp = Math.floor(target.maxHp / 5);
                     target.isCharging = false;
                     target.isBurning = false;
-                    target.burnDamage = 0;
+                    target. = 0;
 					target.burnCaster = null; // 新增：清除火球施放者记录
                     target.isCriticalHealth = false; // 清除濒死状态
                     target.isCharmed = false; // 清除魅惑状态
