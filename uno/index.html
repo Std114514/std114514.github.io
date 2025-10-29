@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联机 UNO</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>UNO X</h1>
+            <p class="subtitle">powered by https://std91.icu/</p>
+            <div class="season-display" id="seasonDisplay">
+                赛季: <span id="currentSeason">1</span>
+            </div>
+        </header>
+
+        <div id="content">
+            <!-- 动态内容 -->
+        </div>
+    </div>
+
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/supabase-client.js"></script>
+    <script type="module">
+        import { checkAuth, getCurrentUser } from './js/auth.js';
+        import { 
+            getSeasonInfo, 
+            getOnlineCounts, 
+            getLeaderboards,
+            getUserStats 
+        } from './js/supabase-client.js';
+
+        // 初始化页面
+        async function initPage() {
+            const user = await checkAuth();
+            
+            if (user) {
+                await renderLoggedInInterface();
+            } else {
+                renderNotLoggedInInterface();
+            }
+            
+            // 加载赛季信息
+            await loadSeasonInfo();
+        }
+
+        // 渲染已登录界面
+        async function renderLoggedInInterface() {
+            const user = getCurrentUser();
+            const onlineCounts = await getOnlineCounts();
+            const leaderboards = await getLeaderboards();
+            const userStats = await getUserStats(user.id);
+
+            document.getElementById('content').innerHTML = `
+                <div class="main-content">
+                    <div class="game-mode" onclick="enterGameMode('rating')">
+                        <h2 class="mode-title">积分场</h2>
+                        <button class="mode-button" onclick="event.stopPropagation(); enterGameMode('rating')">
+                            进入积分场
+                        </button>
+                        <div class="online-count" id="ratingOnline">
+                            在线: ${onlineCounts.rating}人
+                        </div>
+                    </div>
+                    
+                    <div class="game-mode" onclick="enterGameMode('evaluate')">
+                        <h2 class="mode-title">评测场</h2>
+                        <button class="mode-button" onclick="event.stopPropagation(); enterGameMode('evaluate')">
+                            进入评测场
+                        </button>
+                        <div class="online-count" id="evaluateOnline">
+                            在线: ${onlineCounts.evaluate}人
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="leaderboards">
+                    <div class="leaderboard">
+                        <h3>积分场排行榜</h3>
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>玩家</th>
+                                    <th>等级</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ratingLeaderboard">
+                                ${renderLeaderboard(leaderboards.rating, true)}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="leaderboard">
+                        <h3>评测场排行榜</h3>
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>玩家</th>
+                                    <th>等级</th>
+                                </tr>
+                            </thead>
+                            <tbody id="evaluateLeaderboard">
+                                ${renderLeaderboard(leaderboards.evaluate, false)}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="user-info-section">
+                    <h3>个人信息</h3>
+                    <div style="margin-bottom: 15px; font-size: 1.2rem;">
+                        <span>${user.username}</span>
+                    </div>
+                    <div class="user-info-grid">
+                        <div class="user-info-item">
+                            <span>积分场</span>
+                            <span class="user-rank">${userStats.ratingLevel}</span>
+                        </div>
+                        <div class="user-info-item">
+                            <span>评测场</span>
+                            <span class="user-rank">${userStats.evaluateLevel}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 实时更新在线人数
+            setInterval(async () => {
+                const counts = await getOnlineCounts();
+                document.getElementById('ratingOnline').textContent = `在线: ${counts.rating}人`;
+                document.getElementById('evaluateOnline').textContent = `在线: ${counts.evaluate}人`;
+            }, 10000);
+        }
+
+        // 渲染排行榜
+        function renderLeaderboard(leaderboard, isRating) {
+            if (!leaderboard || leaderboard.length === 0) {
+                return '<tr><td colspan="3">暂无数据</td></tr>';
+            }
+            
+            return leaderboard.map((player, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${player.username}</td>
+                    <td>${calculateRatingLevel(player.score, isRating)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 等级计算函数
+        function calculateRatingLevel(score, isRating = true) {
+            // 实现等级计算逻辑（同之前）
+            // 这里简化显示
+            return isRating ? `${score}分` : `${score}分`;
+        }
+
+        // 渲染未登录界面
+        function renderNotLoggedInInterface() {
+            document.getElementById('content').innerHTML = `
+                <div class="not-logged-in">
+                    <p>你还没有登录，请先登录！</p>
+                    <p class="login-prompt" onclick="window.location.href='/auth/'">登录</p>
+                </div>
+            `;
+        }
+
+        // 加载赛季信息
+        async function loadSeasonInfo() {
+            const season = await getSeasonInfo();
+            document.getElementById('currentSeason').textContent = season;
+        }
+
+        // 进入游戏模式
+        window.enterGameMode = function(mode) {
+            window.location.href = `game.html?mode=${mode}`;
+        };
+
+        // 初始化页面
+        initPage();
+    </script>
+</body>
+</html>
