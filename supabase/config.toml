@@ -8,7 +8,7 @@ url = "https://xwrgpngwmdjbmsziuodl.supabase.co"
 
 [auth]
 # 重定向 URL（根据你的前端地址配置）
-site_url = "https://your-username.github.io"
+site_url = "https://std91.icu"
 additional_redirect_urls = ["http://localhost:3000"]
 
 [functions]
