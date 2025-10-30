@@ -397,25 +397,25 @@ class UNOGame {
         }
     }
     
-    // AI回合
+    // 在 UNOGame 类的 aiTurn 方法中修复：
     aiTurn() {
         if (this.gameOver) return;
         
         const ai = this.players[this.currentPlayerIndex];
         console.log('AI思考中:', ai.name);
         
-        // AI有87%概率喊UNO（当只剩一张牌时）
-        if (ai.cards.length === 1 && Math.random() < 0.87) {
-            ai.unoCalled = true;
-            if (this.uiCallbacks && this.uiCallbacks.showMessage) {
-                this.uiCallbacks.showMessage(`${ai.name}喊了UNO！`);
-            }
-        }
-        
         // 检查可以出的牌
         const playableCards = this.getPlayableCards(ai.cards);
         
         if (playableCards.length > 0) {
+            // AI有87%概率喊UNO（当只剩一张牌时）
+            if (ai.cards.length === 1 && Math.random() < 0.87) {
+                ai.unoCalled = true;
+                if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+                    this.uiCallbacks.showMessage(`${ai.name}喊了UNO！`);
+                }
+            }
+            
             // 按照策略选择出牌
             const cardToPlay = this.aiChooseCard(playableCards, ai.cards);
             this.playCard(cardToPlay, ai.cards.indexOf(cardToPlay));
@@ -426,7 +426,15 @@ class UNOGame {
             }
             this.drawCardForCurrentPlayer();
         }
+        
+        // AI回合完成后通知UI更新
+        if (this.uiCallbacks && this.uiCallbacks.onAITurnComplete) {
+            setTimeout(() => {
+                this.uiCallbacks.onAITurnComplete();
+            }, 500);
+        }
     }
+
     
     // AI选择出牌策略
     aiChooseCard(playableCards, allCards) {
