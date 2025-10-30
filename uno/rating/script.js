@@ -57,6 +57,8 @@ function initGame(playerName) {
 }
 
 function updateGameUI() {
+    if (!unoGame) return;
+    
     // 更新玩家名称
     document.getElementById('playerName').textContent = unoGame.players[0].name;
     
@@ -83,6 +85,8 @@ function updateOpponentsUI() {
     for (let i = 1; i < 4; i++) {
         const opponent = document.getElementById(`opponent${i}`);
         const player = unoGame.players[i];
+        
+        if (!opponent || !player) continue;
         
         // 更新名称和牌数
         opponent.querySelector('.opponent-name').textContent = player.name;
@@ -125,6 +129,8 @@ function updatePlayerHand() {
     playerHand.innerHTML = '';
     
     const humanPlayer = unoGame.players[0];
+    if (!humanPlayer || !humanPlayer.cards) return;
+    
     humanPlayer.cards.forEach((card, index) => {
         const cardElement = createCardElement(card, true);
         cardElement.addEventListener('click', () => {
@@ -152,10 +158,10 @@ function createCardElement(card, isPlayable) {
     if (card.value === 'draw5') displayValue = '+5';
     if (card.value === 'draw6') displayValue = '+6';
     if (card.value === 'draw7') displayValue = '+7';
-    if (card.value === 'turtle') displayValue = '龟';
-    if (card.value === 'wild') displayValue = '变';
-    if (card.value === 'skip') displayValue = '跳';
-    if (card.value === 'reverse') displayValue = '反';
+    if (card.value === 'turtle') displayValue = '乌龟';
+    if (card.value === 'wild') displayValue = '变色';
+    if (card.value === 'skip') displayValue = '禁止';
+    if (card.value === 'reverse') displayValue = '翻转';
     
     cardElement.textContent = displayValue;
     
@@ -174,6 +180,8 @@ function updateButtons() {
     const unoButton = document.getElementById('unoButton');
     const drawButton = document.getElementById('drawButton');
     
+    if (!unoButton || !drawButton) return;
+    
     // 更新UNO按钮状态
     if (unoGame.unoButtonEnabled && unoGame.players[unoGame.currentPlayerIndex].isHuman) {
         unoButton.disabled = false;
@@ -191,6 +199,8 @@ function updateButtons() {
 
 function showMessage(message) {
     const messageElement = document.getElementById('gameMessage');
+    if (!messageElement) return;
+    
     messageElement.textContent = message;
     messageElement.style.display = 'block';
     
@@ -285,7 +295,7 @@ function showGameResult(rankings, userRanking) {
         <div class="modal-content">
             ${resultsHTML}
             <div class="modal-actions">
-                <button id="playAgain">再玩一次</button>
+                <button id="playAgain">再玩一局</button>
                 <button id="backToLobby">返回大厅</button>
             </div>
         </div>
