@@ -24,7 +24,7 @@ function checkAuthStatus() {
 }
 
 function initGame(playerName) {
-    // UI回调函数
+    // UI回调函数 test
     const uiCallbacks = {
         showMessage: showMessage,
         showColorSelection: showColorSelection,
