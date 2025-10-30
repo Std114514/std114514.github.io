@@ -2,7 +2,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Arial', sans-serif;
 }
 
 body {
@@ -19,23 +19,21 @@ body {
 
 .header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     padding: 20px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 15px;
     margin-bottom: 20px;
+    position: relative;
 }
 
 .header h1 {
     font-size: 2.5rem;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.player-info {
-    display: flex;
-    gap: 20px;
-    font-size: 1.2rem;
+    background: linear-gradient(45deg, #ffcc00, #ff6b00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .game-board {
@@ -86,12 +84,17 @@ body {
     padding: 20px;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
 }
 
 .discard-pile, .draw-pile {
     width: 120px;
     height: 180px;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .current-card {
@@ -101,9 +104,10 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: bold;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
 }
 
 .card {
@@ -113,11 +117,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.5rem;
+    font-size: 2.2rem;
     font-weight: bold;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     cursor: pointer;
     transition: transform 0.2s;
+    position: relative;
 }
 
 .card:hover {
@@ -127,6 +132,19 @@ body {
 .card.back {
     background: linear-gradient(45deg, #1a2a6c, #b21f1f);
     color: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.deck-count {
+    position: absolute;
+    bottom: -25px;
+    color: #ffcc00;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .card.red {
@@ -170,10 +188,20 @@ body {
 .player-hand {
     display: flex;
     justify-content: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 10px;
     margin-bottom: 20px;
     min-height: 180px;
+    overflow-x: auto;
+    padding: 10px;
+}
+
+.player-hand .card {
+    width: 100px;
+    height: 150px;
+    flex-shrink: 0;
+    font-size: 2.2rem;
+    position: relative;
 }
 
 .player-actions {
@@ -223,9 +251,10 @@ body {
     margin-top: 20px;
     font-size: 1.2rem;
     min-height: 60px;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .current-player {
@@ -233,38 +262,7 @@ body {
     box-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-    .game-board {
-        grid-template-rows: auto;
-        height: auto;
-    }
-    
-    .opponents {
-        grid-template-columns: 1fr;
-    }
-    
-    .center-area {
-        flex-direction: column;
-        gap: 20px;
-    }
-    
-    .player-hand {
-        min-height: 120px;
-    }
-    
-    .card {
-        width: 80px;
-        height: 120px;
-        font-size: 1.2rem;
-    }
-    
-    .discard-pile, .draw-pile {
-        width: 80px;
-        height: 120px;
-    }
-}
-
+/* 模态框样式 */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -387,21 +385,6 @@ body {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* 游戏消息样式 */
-.game-message {
-    text-align: center;
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    margin-top: 20px;
-    font-size: 1.2rem;
-    min-height: 60px;
-    display: none; /* 默认隐藏 */
-    align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
 /* 可出牌的高亮效果 */
 .card.playable {
     border: 3px solid #ffcc00;
@@ -411,4 +394,44 @@ body {
 
 .card.playable:hover {
     transform: translateY(-10px);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .game-board {
+        grid-template-rows: auto;
+        height: auto;
+    }
+    
+    .opponents {
+        grid-template-columns: 1fr;
+    }
+    
+    .center-area {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .player-hand {
+        min-height: 120px;
+    }
+    
+    .player-hand .card {
+        width: 80px;
+        height: 120px;
+        font-size: 1.8rem;
+    }
+    
+    .discard-pile, .draw-pile {
+        width: 80px;
+        height: 120px;
+    }
+    
+    .card {
+        font-size: 1.8rem;
+    }
+    
+    .current-card {
+        font-size: 2rem;
+    }
 }
