@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNO X v2.0.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 40px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(45deg, #ffcc00, #ff6b00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.4rem;
+            opacity: 0.9;
+        }
+        
+        .season-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .leaderboard {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .leaderboard h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ffcc00;
+        }
+        
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .leaderboard-table th {
+            color: #ffcc00;
+        }
+        
+        .game-modes {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .game-mode {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .game-mode:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .mode-title {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: #ffcc00;
+        }
+        
+        .online-count {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+        
+        .play-button {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .play-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
+        }
+        
+        .user-info-section {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 20px;
+        }
+        
+        .user-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        
+        .login-prompt {
+            text-align: center;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-top: 30px;
+            font-size: 1.5rem;
+            color: #ff6b6b;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .season-display {
+                position: relative;
+                top: 0;
+                right: 0;
+                margin: 10px auto;
+                width: fit-content;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>UNO X v2.0.0</h1>
+            <p class="subtitle">by std114514</p>
+            <div class="season-display" id="seasonDisplay">赛季: 加载中...</div>
+        </div>
+        
+        <div id="content">
+            <!-- 内容将在JS中动态加载 -->
+        </div>
+    </div>
+
+    <script>
+        // Supabase 配置
+        const SUPABASE_URL = 'https://xwrgpngwmdjbmsziuodl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3cmdwbmd3bWRqYm1zeml1b2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNDUzNjksImV4cCI6MjA3NTcyMTM2OX0.kVpcSCmmwcLcs60C0BjPxyXFDxdl3V4ny-vutKsnbV8';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // 检查登录状态
+        function checkAuthStatus() {
+            const userData = localStorage.getItem('userData');
+            return userData ? JSON.parse(userData) : null;
+        }
+        
+        // 计算在线人数
+        function calculateOnlineCount() {
+            const now = new Date();
+            const hour = now.getHours();
+            const baseCount = 2400 - Math.abs(12 - hour) * 100;
+            const randomVariation = Math.floor(Math.random() * 101) - 50; // -50到50
+            return Math.max(0, baseCount + randomVariation);
+        }
+        
+        // 获取等级信息
+        function getRatingInfo(score, isRatingMode) {
+            if (isRatingMode) {
+                // 积分场等级计算
+                if (score < 20) return { level: "青铜", sublevel: Math.floor(score / 4) + 1, maxSublevel: 5 };
+                if (score < 60) return { level: "白银", sublevel: Math.floor((score - 20) / 8) + 1, maxSublevel: 5 };
+                if (score < 120) return { level: "黄金", sublevel: Math.floor((score - 60) / 12) + 1, maxSublevel: 5 };
+                if (score < 200) return { level: "铂金", sublevel: Math.floor((score - 120) / 16) + 1, maxSublevel: 5 };
+                if (score < 300) return { level: "钻石", sublevel: Math.floor((score - 200) / 20) + 1, maxSublevel: 5 };
+                if (score < 425) return { level: "大师", sublevel: Math.floor((score - 300) / 25) + 1, maxSublevel: 5 };
+                if (score < 600) return { level: "皇冠", sublevel: Math.floor((score - 425) / 35) + 1, maxSublevel: 5 };
+                return { level: "战神", sublevel: Math.floor((score - 600) / 50) + 1, maxSublevel: Infinity };
+            } else {
+                // 评测场等级计算
+                if (score < 30) return { level: "学", sublevel: Math.floor(score / 5) + 1, maxSublevel: 3 };
+                if (score < 90) return { level: "业", sublevel: Math.floor((score - 30) / 10) + 1, maxSublevel: 3 };
+                if (score < 180) return { level: "业", sublevel: Math.floor((score - 90) / 15) + 1, maxSublevel: 3 };
+                if (score < 300) return { level: "业", sublevel: Math.floor((score - 180) / 20) + 1, maxSublevel: 3 };
+                if (score < 450) return { level: "业", sublevel: Math.floor((score - 300) / 25) + 1, maxSublevel: 3 };
+                if (score < 630) return { level: "业", sublevel: Math.floor((score - 450) / 30) + 1, maxSublevel: 3 };
+                if (score < 990) return { level: "专", sublevel: Math.floor((score - 630) / 40) + 1, maxSublevel: 3 };
+                if (score < 1000) return { level: "神", sublevel: 0, maxSublevel: 1 };
+                return { level: "神", sublevel: Math.floor((score - 1000) / 50) + 1, maxSublevel: 3 };
+            }
+        }
+        
+        // 格式化等级显示
+        function formatLevel(score, isRatingMode) {
+            const info = getRatingInfo(score, isRatingMode);
+            if (isRatingMode) {
+                return `${info.level}${info.sublevel}（${score}分）`;
+            } else {
+                if (info.level === "神" && info.sublevel === 0) {
+                    return `神0-1（${score}分）`;
+                }
+                const mainLevel = info.level === "学" ? Math.floor(info.sublevel / 3) + 1 : 
+                                info.level === "业" ? Math.floor(info.sublevel / 3) + 1 :
+                                info.level === "专" ? Math.floor(info.sublevel / 3) + 1 :
+                                Math.floor(info.sublevel / 3) + 1;
+                const subLevel = (info.sublevel - 1) % 3 + 1;
+                return `${info.level}${mainLevel}-${subLevel}（${score}分）`;
+            }
+        }
+        
+        // 加载排行榜数据
+        async function loadLeaderboard(mode) {
+            try {
+                const tableName = mode === 'rating' ? 'rating_leaderboard' : 'evaluate_leaderboard';
+                const { data, error } = await supabase
+                    .from(tableName)
+                    .select('*')
+                    .order('score', { ascending: false })
+                    .limit(10);
+                
+                if (error) throw error;
+                
+                return data || [];
+            } catch (error) {
+                console.error(`加载${mode}排行榜失败:`, error);
+                return [];
+            }
+        }
+        
+        // 加载赛季信息
+        async function loadSeasonInfo() {
+            try {
+                const { data, error } = await supabase
+                    .from('seasons')
+                    .select('*')
+                    .eq('current', true)
+                    .single();
+                
+                if (error) throw error;
+                return data;
+            } catch (error) {
+                console.error('加载赛季信息失败:', error);
+                return { name: '默认赛季' };
+            }
+        }
+        
+        // 加载用户数据
+        async function loadUserData(userId) {
+            try {
+                const [ratingData, evaluateData] = await Promise.all([
+                    supabase.from('rating_leaderboard').select('*').eq('user_id', userId).single(),
+                    supabase.from('evaluate_leaderboard').select('*').eq('user_id', userId).single()
+                ]);
+                
+                return {
+                    rating: ratingData.data ? ratingData.data.score : 0,
+                    evaluate: evaluateData.data ? evaluateData.data.score : 0
+                };
+            } catch (error) {
+                console.error('加载用户数据失败:', error);
+                return { rating: 0, evaluate: 0 };
+            }
+        }
+        
+        // 渲染页面
+        async function renderPage() {
+            const user = checkAuthStatus();
+            const content = document.getElementById('content');
+            
+            if (!user) {
+                content.innerHTML = `
+                    <div class="login-prompt">
+                        你还没有登录，请先登录！
+                    </div>
+                `;
+                return;
+            }
+            
+            // 加载数据
+            const [ratingLeaderboard, evaluateLeaderboard, seasonInfo, userData] = await Promise.all([
+                loadLeaderboard('rating'),
+                loadLeaderboard('evaluate'),
+                loadSeasonInfo(),
+                loadUserData(user.id)
+            ]);
+            
+            // 更新赛季显示
+            document.getElementById('seasonDisplay').textContent = `赛季: ${seasonInfo.name}`;
+            
+            // 计算在线人数
+            const onlineCount = calculateOnlineCount();
+            
+            content.innerHTML = `
+                <div class="main-content">
+                    <!-- 左边：积分场排行榜 -->
+                    <div class="leaderboard">
+                        <h2>积分场排行榜</h2>
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>玩家</th>
+                                    <th>等级</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${ratingLeaderboard.map((player, index) => `
+                                    <tr>
+                                        <td>${index + 1}</td>
+                                        <td>${player.username}</td>
+                                        <td>${formatLevel(player.score, true)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 中间：游戏模式 -->
+                    <div class="game-modes">
+                        <div class="game-mode" onclick="enterGame('rating')">
+                            <div class="mode-title">积分场</div>
+                            <div class="online-count">在线人数: ${Math.floor(onlineCount * 0.6)}</div>
+                            <button class="play-button">开始游戏</button>
+                        </div>
+                        
+                        <div class="game-mode" onclick="enterGame('evaluate')">
+                            <div class="mode-title">评测场</div>
+                            <div class="online-count">在线人数: ${Math.floor(onlineCount * 0.4)}</div>
+                            <button class="play-button">开始游戏</button>
+                        </div>
+                        
+                        <!-- 用户信息 -->
+                        <div class="user-info-section">
+                            <h3>${user.username}</h3>
+                            <div class="user-stats">
+                                <div class="stat-item">
+                                    <div class="stat-label">积分场</div>
+                                    <div class="stat-value">${formatLevel(userData.rating, true)}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">评测场</div>
+                                    <div class="stat-value">${formatLevel(userData.evaluate, false)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 右边：评测场排行榜 -->
+                    <div class="leaderboard">
+                        <h2>评测场排行榜</h2>
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>玩家</th>
+                                    <th>等级</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${evaluateLeaderboard.map((player, index) => `
+                                    <tr>
+                                        <td>${index + 1}</td>
+                                        <td>${player.username}</td>
+                                        <td>${formatLevel(player.score, false)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 进入游戏
+        function enterGame(mode) {
+            if (mode === 'rating') {
+                window.location.href = '/uno/rating';
+            } else {
+                window.location.href = '/uno/evaluate';
+            }
+        }
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            renderPage();
+            
+            // 每30秒更新一次在线人数
+            setInterval(() => {
+                const onlineCount = calculateOnlineCount();
+                const ratingCount = document.querySelector('.game-mode:nth-child(1) .online-count');
+                const evaluateCount = document.querySelector('.game-mode:nth-child(2) .online-count');
+                
+                if (ratingCount) ratingCount.textContent = `在线人数: ${Math.floor(onlineCount * 0.6)}`;
+                if (evaluateCount) evaluateCount.textContent = `在线人数: ${Math.floor(onlineCount * 0.4)}`;
+            }, 30000);
+        });
+    </script>
+</body>
+</html>
