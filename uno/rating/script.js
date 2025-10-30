@@ -1,450 +1,312 @@
-// UNO游戏核心逻辑
-class UNOGame {
-    constructor(mode, playerName) {
-        this.mode = mode; // 'rating' 或 'evaluate'
-        this.playerName = playerName;
-        this.players = [
-            { name: playerName, cards: [], isHuman: true, unoCalled: false },
-            { name: "player1", cards: [], isHuman: false, unoCalled: false },
-            { name: "player2", cards: [], isHuman: false, unoCalled: false },
-            { name: "player3", cards: [], isHuman: false, unoCalled: false }
-        ];
-        this.currentPlayerIndex = 0;
-        this.direction = 1; // 1: 顺时针, -1: 逆时针
-        this.deck = [];
-        this.discardPile = [];
-        this.currentColor = null;
-        this.currentValue = null;
-        this.pendingDraw = 0;
-        this.pendingDrawTarget = null;
-        this.gameOver = false;
-        this.winner = null;
-        this.unoButtonEnabled = false;
-        
-        this.initializeDeck();
-        this.shuffleDeck();
-        this.dealCards();
-        this.startGame();
+// UNO积分场游戏逻辑
+const SUPABASE_URL = 'https://xwrgpngwmdjbmsziuodl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3cmdwbmd3bWRqYm1zeml1b2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNDUzNjksImV4cCI6MjA3NTcyMTM2OX0.kVpcSCmmwcLcs60C0BjPxyXFDxdl3V4ny-vutKsnbV8';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let unoGame;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 检查登录状态
+    const user = checkAuthStatus();
+    if (!user) {
+        alert('请先登录！');
+        window.location.href = '/auth/';
+        return;
     }
     
-    // 初始化牌堆
-    initializeDeck() {
-        this.deck = [];
-        const colors = ['red', 'blue', 'green', 'yellow'];
-        const values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'skip', 'reverse', 'draw2'];
-        
-        // 标准108张牌
-        for (let color of colors) {
-            // 0号牌每种颜色1张
-            this.deck.push({ color, value: '0', type: 'number' });
-            
-            // 1-9号牌每种颜色2张
-            for (let value of values.slice(1, 10)) {
-                this.deck.push({ color, value, type: 'number' });
-                this.deck.push({ color, value, type: 'number' });
-            }
-            
-            // 功能牌每种颜色2张
-            for (let value of values.slice(10)) {
-                this.deck.push({ color, value, type: 'action' });
-                this.deck.push({ color, value, type: 'action' });
-            }
-        }
-        
-        // 黑色牌
-        for (let i = 0; i < 4; i++) {
-            this.deck.push({ color: 'black', value: 'wild', type: 'wild' });
-            this.deck.push({ color: 'black', value: 'draw4', type: 'wild' });
-        }
-        
-        // 特殊牌
-        this.deck.push({ color: 'black', value: 'draw5', type: 'special' });
-        this.deck.push({ color: 'black', value: 'draw5', type: 'special' });
-        this.deck.push({ color: 'black', value: 'draw6', type: 'special' });
-        this.deck.push({ color: 'black', value: 'draw7', type: 'special' });
-        
-        // 乌龟牌
-        for (let color of colors) {
-            this.deck.push({ color, value: 'turtle', type: 'special' });
-            this.deck.push({ color, value: 'turtle', type: 'special' });
-        }
-    }
+    // 初始化游戏
+    initGame(user.username);
+});
+
+function checkAuthStatus() {
+    const userData = localStorage.getItem('userData');
+    return userData ? JSON.parse(userData) : null;
+}
+
+function initGame(playerName) {
+    // UI回调函数
+    const uiCallbacks = {
+        showMessage: showMessage,
+        showColorSelection: showColorSelection,
+        showTurtleTargetSelection: showTurtleTargetSelection,
+        showGameResult: showGameResult,
+        showScoreUpdate: showScoreUpdate
+    };
     
-    // 洗牌
-    shuffleDeck() {
-        for (let i = this.deck.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
-        }
-    }
+    // 创建游戏实例
+    unoGame = new UNOGame('rating', playerName, uiCallbacks);
     
-    // 发牌
-    dealCards() {
-        for (let player of this.players) {
-            for (let i = 0; i < 7; i++) {
-                player.cards.push(this.drawCard());
-            }
-        }
-    }
+    // 更新UI
+    updateGameUI();
     
-    // 从牌堆抽牌
-    drawCard() {
-        if (this.deck.length <= 15) {
-            // 补两副牌
-            this.initializeDeck();
-            this.shuffleDeck();
-        }
-        
-        if (this.deck.length === 0) {
-            // 如果牌堆空了，从弃牌堆重新洗牌（除了最上面一张）
-            const topCard = this.discardPile.pop();
-            this.deck = this.discardPile;
-            this.discardPile = [topCard];
-            this.shuffleDeck();
-        }
-        
-        return this.deck.pop();
-    }
+    // 绑定事件
+    document.getElementById('unoButton').addEventListener('click', () => {
+        unoGame.callUno();
+        updateGameUI();
+    });
     
-    // 开始游戏
-    startGame() {
-        // 从牌堆抽一张牌作为起始牌
-        let startCard = this.drawCard();
-        while (startCard.color === 'black') {
-            // 如果第一张是黑色牌，重新抽
-            this.deck.unshift(startCard);
-            startCard = this.drawCard();
+    document.getElementById('drawButton').addEventListener('click', () => {
+        if (unoGame.players[unoGame.currentPlayerIndex].isHuman && !unoGame.gameOver) {
+            unoGame.drawCardForCurrentPlayer();
+            updateGameUI();
         }
-        
-        this.discardPile.push(startCard);
-        this.currentColor = startCard.color;
-        this.currentValue = startCard.value;
-        
-        // 随机决定起始玩家
-        this.currentPlayerIndex = Math.floor(Math.random() * 4);
-        
-        // 处理起始牌的特殊效果
-        this.handleCardEffect(startCard);
-        
-        // 如果起始玩家不是人类玩家，开始AI回合
-        if (!this.players[this.currentPlayerIndex].isHuman) {
-            setTimeout(() => this.aiTurn(), 1000);
-        }
-    }
+    });
     
-    // 处理卡牌效果
-    handleCardEffect(card) {
-        switch (card.value) {
-            case 'skip':
-                this.nextPlayer();
-                break;
-            case 'reverse':
-                this.direction *= -1;
-                break;
-            case 'draw2':
-                this.pendingDraw += 2;
-                this.pendingDrawTarget = this.getNextPlayerIndex();
-                break;
-            case 'draw4':
-                this.pendingDraw += 4;
-                this.pendingDrawTarget = this.getNextPlayerIndex();
-                break;
-            case 'draw5':
-                this.pendingDraw += 5;
-                this.pendingDrawTarget = this.getNextPlayerIndex();
-                break;
-            case 'draw6':
-                this.pendingDraw += 6;
-                this.pendingDrawTarget = this.getNextPlayerIndex();
-                break;
-            case 'draw7':
-                this.pendingDraw += 7;
-                this.pendingDrawTarget = this.getNextPlayerIndex();
-                break;
-            case 'turtle':
-                // 乌龟牌效果：指定任意一人+3张
-                // 在人类玩家回合会弹出选择，AI会随机选择
-                break;
-        }
-    }
+    // 初始消息
+    showMessage('游戏开始！');
+}
+
+function updateGameUI() {
+    // 更新玩家名称
+    document.getElementById('playerName').textContent = unoGame.players[0].name;
     
-    // 获取下一个玩家索引
-    getNextPlayerIndex() {
-        let nextIndex = this.currentPlayerIndex + this.direction;
-        if (nextIndex >= this.players.length) nextIndex = 0;
-        if (nextIndex < 0) nextIndex = this.players.length - 1;
-        return nextIndex;
-    }
+    // 更新牌堆数量
+    document.getElementById('deckCount').textContent = `牌堆: ${unoGame.deck.length}`;
     
-    // 切换到下一个玩家
-    nextPlayer() {
-        this.currentPlayerIndex = this.getNextPlayerIndex();
+    // 更新对手信息
+    updateOpponentsUI();
+    
+    // 更新中央区域
+    updateCenterArea();
+    
+    // 更新玩家手牌
+    updatePlayerHand();
+    
+    // 更新游戏信息
+    updateGameInfo();
+    
+    // 更新按钮状态
+    updateButtons();
+}
+
+function updateOpponentsUI() {
+    for (let i = 1; i < 4; i++) {
+        const opponent = document.getElementById(`opponent${i}`);
+        const player = unoGame.players[i];
         
-        // 重置UNO按钮状态
-        if (this.players[this.currentPlayerIndex].isHuman) {
-            this.unoButtonEnabled = true;
+        // 更新名称和牌数
+        opponent.querySelector('.opponent-name').textContent = player.name;
+        opponent.querySelector('.card-count').textContent = `${player.cards.length}张`;
+        
+        // 高亮当前玩家
+        if (unoGame.currentPlayerIndex === i) {
+            opponent.classList.add('current-player');
         } else {
-            this.unoButtonEnabled = false;
+            opponent.classList.remove('current-player');
         }
-        
-        // 检查游戏是否结束
-        if (this.checkGameOver()) {
-            this.endGame();
-            return;
+    }
+}
+
+function updateCenterArea() {
+    // 更新当前牌
+    const currentCard = document.getElementById('currentCard');
+    if (unoGame.discardPile.length > 0) {
+        const topCard = unoGame.discardPile[unoGame.discardPile.length - 1];
+        currentCard.innerHTML = '';
+        const cardElement = createCardElement(topCard, false);
+        currentCard.appendChild(cardElement);
+    }
+    
+    // 更新当前颜色
+    document.getElementById('currentColor').textContent = `当前颜色: ${getColorName(unoGame.currentColor)}`;
+    
+    // 更新牌堆点击事件
+    const drawPile = document.getElementById('drawPile');
+    drawPile.onclick = () => {
+        if (unoGame.players[unoGame.currentPlayerIndex].isHuman && !unoGame.gameOver) {
+            unoGame.drawCardForCurrentPlayer();
+            updateGameUI();
         }
-        
-        // 如果下一个玩家需要摸牌
-        if (this.pendingDraw > 0 && this.pendingDrawTarget === this.currentPlayerIndex) {
-            const player = this.players[this.currentPlayerIndex];
-            for (let i = 0; i < this.pendingDraw; i++) {
-                player.cards.push(this.drawCard());
+    };
+}
+
+function updatePlayerHand() {
+    const playerHand = document.getElementById('playerHand');
+    playerHand.innerHTML = '';
+    
+    const humanPlayer = unoGame.players[0];
+    humanPlayer.cards.forEach((card, index) => {
+        const cardElement = createCardElement(card, true);
+        cardElement.addEventListener('click', () => {
+            if (unoGame.players[unoGame.currentPlayerIndex].isHuman && !unoGame.gameOver) {
+                const playableCards = unoGame.getPlayableCards(humanPlayer.cards);
+                if (playableCards.includes(card)) {
+                    unoGame.playCard(card, index);
+                    updateGameUI();
+                } else {
+                    showMessage('这张牌不能出！');
+                }
             }
-            this.pendingDraw = 0;
-            this.pendingDrawTarget = null;
-            
-            // 摸完牌后跳过回合
-            this.nextPlayer();
-            return;
-        }
-        
-        // 如果是AI玩家，开始AI回合
-        if (!this.players[this.currentPlayerIndex].isHuman) {
-            setTimeout(() => this.aiTurn(), 1000);
-        }
-    }
-    
-    // AI回合
-    aiTurn() {
-        const ai = this.players[this.currentPlayerIndex];
-        
-        // AI有87%概率喊UNO（当只剩一张牌时）
-        if (ai.cards.length === 1 && Math.random() < 0.87) {
-            ai.unoCalled = true;
-        }
-        
-        // 检查可以出的牌
-        const playableCards = this.getPlayableCards(ai.cards);
-        
-        if (playableCards.length > 0) {
-            // 按照策略选择出牌
-            const cardToPlay = this.aiChooseCard(playableCards, ai.cards);
-            this.playCard(cardToPlay, ai.cards.indexOf(cardToPlay));
-        } else {
-            // 不能出牌，摸一张
-            this.drawCardForCurrentPlayer();
-        }
-    }
-    
-    // AI选择出牌策略
-    aiChooseCard(playableCards, allCards) {
-        // 策略1: 若只有相同颜色的牌能出，按优先级出牌
-        const sameColorCards = playableCards.filter(card => card.color === this.currentColor);
-        if (sameColorCards.length === playableCards.length) {
-            return this.prioritizeCards(sameColorCards)[0];
-        }
-        
-        // 策略2: 87%概率按策略1，13%概率随机出不同颜色相同符号的牌
-        if (Math.random() < 0.87) {
-            return this.prioritizeCards(playableCards)[0];
-        } else {
-            // 找出不同颜色但相同符号的牌
-            const sameValueCards = playableCards.filter(card => 
-                card.value === this.currentValue && card.color !== this.currentColor
-            );
-            if (sameValueCards.length > 0) {
-                return sameValueCards[Math.floor(Math.random() * sameValueCards.length)];
-            } else {
-                return this.prioritizeCards(playableCards)[0];
-            }
-        }
-    }
-    
-    // 卡牌优先级排序
-    prioritizeCards(cards) {
-        const priority = {
-            '9': 1, '8': 2, '7': 3, '6': 4, '5': 5, 
-            '4': 6, '3': 7, '2': 8, '1': 9, '0': 10,
-            'reverse': 11, 'skip': 12, 'draw2': 13,
-            'draw4': 14, 'draw5': 15, 'draw6': 16, 'draw7': 17,
-            'turtle': 18, 'wild': 19
-        };
-        
-        return cards.sort((a, b) => priority[a.value] - priority[b.value]);
-    }
-    
-    // 获取可出的牌
-    getPlayableCards(cards) {
-        return cards.filter(card => {
-            // 黑色牌总是可以出
-            if (card.color === 'black') return true;
-            
-            // 同颜色或同数值的牌可以出
-            if (card.color === this.currentColor || card.value === this.currentValue) return true;
-            
-            return false;
         });
+        playerHand.appendChild(cardElement);
+    });
+}
+
+function createCardElement(card, isPlayable) {
+    const cardElement = document.createElement('div');
+    cardElement.className = `card ${card.color} ${isPlayable ? 'playable' : ''}`;
+    
+    let displayValue = card.value;
+    if (card.value === 'draw2') displayValue = '+2';
+    if (card.value === 'draw4') displayValue = '+4';
+    if (card.value === 'draw5') displayValue = '+5';
+    if (card.value === 'draw6') displayValue = '+6';
+    if (card.value === 'draw7') displayValue = '+7';
+    if (card.value === 'turtle') displayValue = '龟';
+    if (card.value === 'wild') displayValue = '变';
+    if (card.value === 'skip') displayValue = '跳';
+    if (card.value === 'reverse') displayValue = '反';
+    
+    cardElement.textContent = displayValue;
+    
+    return cardElement;
+}
+
+function updateGameInfo() {
+    document.getElementById('currentPlayer').textContent = 
+        `当前回合: ${unoGame.players[unoGame.currentPlayerIndex].name}`;
+    
+    document.getElementById('gameDirection').textContent = 
+        `方向: ${unoGame.direction === 1 ? '顺时针' : '逆时针'}`;
+}
+
+function updateButtons() {
+    const unoButton = document.getElementById('unoButton');
+    const drawButton = document.getElementById('drawButton');
+    
+    // 更新UNO按钮状态
+    if (unoGame.unoButtonEnabled && unoGame.players[unoGame.currentPlayerIndex].isHuman) {
+        unoButton.disabled = false;
+    } else {
+        unoButton.disabled = true;
     }
     
-    // 出牌
-    playCard(card, cardIndex) {
-        const player = this.players[this.currentPlayerIndex];
-        
-        // 从玩家手牌中移除
-        player.cards.splice(cardIndex, 1);
-        
-        // 添加到弃牌堆
-        this.discardPile.push(card);
-        
-        // 更新当前颜色和数值
-        if (card.color !== 'black') {
-            this.currentColor = card.color;
+    // 更新摸牌按钮状态
+    if (unoGame.players[unoGame.currentPlayerIndex].isHuman && !unoGame.gameOver) {
+        drawButton.disabled = false;
+    } else {
+        drawButton.disabled = true;
+    }
+}
+
+function showMessage(message) {
+    const messageElement = document.getElementById('gameMessage');
+    messageElement.textContent = message;
+    messageElement.style.display = 'block';
+    
+    // 3秒后清除消息
+    setTimeout(() => {
+        if (messageElement.textContent === message) {
+            messageElement.style.display = 'none';
         }
-        this.currentValue = card.value;
-        
-        // 处理卡牌效果
-        this.handleCardEffect(card);
-        
-        // 检查是否赢了
-        if (player.cards.length === 0) {
-            this.winner = this.currentPlayerIndex;
-            this.endGame();
-            return;
-        }
-        
-        // 切换到下一个玩家
-        this.nextPlayer();
-    }
+    }, 3000);
+}
+
+function getColorName(color) {
+    const colorNames = {
+        'red': '红色',
+        'blue': '蓝色',
+        'green': '绿色',
+        'yellow': '黄色',
+        'black': '黑色'
+    };
     
-    // 当前玩家摸一张牌
-    drawCardForCurrentPlayer() {
-        const player = this.players[this.currentPlayerIndex];
-        player.cards.push(this.drawCard());
-        
-        // 摸牌后跳过回合
-        this.nextPlayer();
-    }
+    return colorNames[color] || color;
+}
+
+// 显示颜色选择对话框
+function showColorSelection(callback) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>选择颜色</h3>
+            <div class="color-options">
+                <button class="color-option red" data-color="red">红色</button>
+                <button class="color-option blue" data-color="blue">蓝色</button>
+                <button class="color-option green" data-color="green">绿色</button>
+                <button class="color-option yellow" data-color="yellow">黄色</button>
+            </div>
+        </div>
+    `;
     
-    // 喊UNO
-    callUno() {
-        const player = this.players[this.currentPlayerIndex];
-        if (player.isHuman && this.unoButtonEnabled) {
-            player.unoCalled = true;
-            this.unoButtonEnabled = false;
-        }
-    }
+    document.body.appendChild(modal);
     
-    // 检查游戏是否结束
-    checkGameOver() {
-        return this.players.some(player => player.cards.length === 0);
-    }
-    
-    // 结束游戏
-    endGame() {
-        this.gameOver = true;
-        
-        // 计算排名
-        const rankings = this.players
-            .map((player, index) => ({ index, cards: player.cards.length }))
-            .sort((a, b) => a.cards - b.cards)
-            .map((player, rank) => ({ playerIndex: player.index, rank: rank + 1 }));
-        
-        // 更新积分
-        this.updateScores(rankings);
-        
-        // 显示结果
-        this.displayGameResult(rankings);
-    }
-    
-    // 更新积分
-    updateScores(rankings) {
-        const scoreChanges = {
-            1: this.mode === 'rating' ? 10 : 10,  // 第一名
-            2: this.mode === 'rating' ? 4 : 4,    // 第二名
-            3: this.mode === 'rating' ? -3 : -4,  // 第三名
-            4: this.mode === 'rating' ? -9 : -10  // 第四名
-        };
-        
-        // 在实际应用中，这里应该调用Supabase API更新用户积分
-        console.log("游戏结束，排名和积分变化:", rankings.map(r => ({
-            player: this.players[r.playerIndex].name,
-            rank: r.rank,
-            scoreChange: scoreChanges[r.rank]
-        })));
-        
-        // 模拟更新积分到Supabase
-        this.updateSupabaseScores(rankings, scoreChanges);
-    }
-    
-    // 更新Supabase积分
-    async updateSupabaseScores(rankings, scoreChanges) {
-        try {
-            const user = JSON.parse(localStorage.getItem('userData'));
-            if (!user) return;
-            
-            const tableName = this.mode === 'rating' ? 'rating_leaderboard' : 'evaluate_leaderboard';
-            const userId = user.id;
-            
-            // 获取当前积分
-            const { data: currentData, error: fetchError } = await supabase
-                .from(tableName)
-                .select('score')
-                .eq('user_id', userId)
-                .single();
-                
-            if (fetchError && fetchError.code !== 'PGRST116') {
-                console.error('获取当前积分失败:', fetchError);
-                return;
-            }
-            
-            const currentScore = currentData ? currentData.score : 0;
-            const userRanking = rankings.find(r => this.players[r.playerIndex].isHuman);
-            const scoreChange = userRanking ? scoreChanges[userRanking.rank] : 0;
-            const newScore = Math.max(0, currentScore + scoreChange);
-            
-            // 更新或插入积分
-            const { error: upsertError } = await supabase
-                .from(tableName)
-                .upsert({
-                    user_id: userId,
-                    username: user.username,
-                    score: newScore,
-                    updated_at: new Date().toISOString()
-                });
-                
-            if (upsertError) {
-                console.error('更新积分失败:', upsertError);
-            } else {
-                console.log('积分更新成功:', newScore);
-            }
-        } catch (error) {
-            console.error('更新积分过程出错:', error);
-        }
-    }
-    
-    // 显示游戏结果
-    displayGameResult(rankings) {
-        // 在实际应用中，这里应该更新UI显示游戏结果
-        console.log("游戏结束!");
-        rankings.forEach(ranking => {
-            console.log(`第${ranking.rank}名: ${this.players[ranking.playerIndex].name}`);
+    // 绑定颜色选择事件
+    modal.querySelectorAll('.color-option').forEach(button => {
+        button.addEventListener('click', () => {
+            const color = button.getAttribute('data-color');
+            document.body.removeChild(modal);
+            callback(color);
         });
-        
-        // 显示积分变化
-        const scoreChanges = {
-            1: this.mode === 'rating' ? 10 : 10,
-            2: this.mode === 'rating' ? 4 : 4,
-            3: this.mode === 'rating' ? -3 : -4,
-            4: this.mode === 'rating' ? -9 : -10
-        };
-        
-        const userRanking = rankings.find(r => this.players[r.playerIndex].isHuman);
-        if (userRanking) {
-            const change = scoreChanges[userRanking.rank];
-            const changeText = change > 0 ? `+${change}` : change;
-            console.log(`您的积分变化: ${changeText}`);
-            
-            // 在实际应用中，这里应该显示一个模态框或更新UI
-            alert(`游戏结束！您获得了第${userRanking.rank}名，积分${changeText}`);
-        }
-    }
+    });
+}
+
+// 显示乌龟牌目标选择对话框
+function showTurtleTargetSelection(players, callback) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>选择乌龟牌目标</h3>
+            <div class="target-options">
+                ${players.map((player, index) => 
+                    player.isHuman ? '' : 
+                    `<button class="target-option" data-index="${index}">${player.name}</button>`
+                ).join('')}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 绑定目标选择事件
+    modal.querySelectorAll('.target-option').forEach(button => {
+        button.addEventListener('click', () => {
+            const targetIndex = parseInt(button.getAttribute('data-index'));
+            document.body.removeChild(modal);
+            callback(targetIndex);
+        });
+    });
+}
+
+// 显示游戏结果
+function showGameResult(rankings, userRanking) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    
+    let resultsHTML = '<h3>游戏结束！</h3><div class="rankings">';
+    rankings.forEach(ranking => {
+        resultsHTML += `<div class="ranking-item">第${ranking.rank}名: ${ranking.name}</div>`;
+    });
+    resultsHTML += '</div>';
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            ${resultsHTML}
+            <div class="modal-actions">
+                <button id="playAgain">再玩一次</button>
+                <button id="backToLobby">返回大厅</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 绑定按钮事件
+    document.getElementById('playAgain').addEventListener('click', () => {
+        document.body.removeChild(modal);
+        location.reload();
+    });
+    
+    document.getElementById('backToLobby').addEventListener('click', () => {
+        document.body.removeChild(modal);
+        window.location.href = '/uno/';
+    });
+}
+
+// 显示积分更新
+function showScoreUpdate(oldScore, newScore, change) {
+    const changeText = change > 0 ? `+${change}` : change;
+    showMessage(`积分更新: ${oldScore} → ${newScore} (${changeText})`);
 }
