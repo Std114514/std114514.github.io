@@ -7,9 +7,9 @@ class UNOGame {
         
         this.players = [
             { name: playerName, cards: [], isHuman: true, unoCalled: false },
-            { name: "电脑玩家1", cards: [], isHuman: false, unoCalled: false },
-            { name: "电脑玩家2", cards: [], isHuman: false, unoCalled: false },
-            { name: "电脑玩家3", cards: [], isHuman: false, unoCalled: false }
+            { name: "player1", cards: [], isHuman: false, unoCalled: false },
+            { name: "player2", cards: [], isHuman: false, unoCalled: false },
+            { name: "player3", cards: [], isHuman: false, unoCalled: false }
         ];
         this.currentPlayerIndex = 0;
         this.direction = 1; // 1: 顺时针, -1: 逆时针
