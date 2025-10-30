@@ -1,4 +1,4 @@
-// UNO游戏核心逻辑
+// UNO游戏核心逻辑1
 class UNOGame {
     constructor(mode, playerName, uiCallbacks) {
         this.mode = mode; // 'rating' 或 'evaluate'
