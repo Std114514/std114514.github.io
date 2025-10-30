@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNO X 评测场</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>UNO X 积分场</h1>
+            <div class="player-info">
+                <span id="playerName">玩家</span>
+                <span id="deckCount">牌堆: 0</span>
+            </div>
+        </div>
+        
+        <div class="game-board">
+            <div class="opponents">
+                <div class="opponent" id="opponent1">
+                    <div class="opponent-name">player1</div>
+                    <div class="opponent-cards">
+                        <div class="card-count">7张</div>
+                    </div>
+                </div>
+                
+                <div class="opponent" id="opponent2">
+                    <div class="opponent-name">player2</div>
+                    <div class="opponent-cards">
+                        <div class="card-count">7张</div>
+                    </div>
+                </div>
+                
+                <div class="opponent" id="opponent3">
+                    <div class="opponent-name">player3</div>
+                    <div class="opponent-cards">
+                        <div class="card-count">7张</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="center-area">
+                <div class="discard-pile">
+                    <div class="current-card" id="currentCard">
+                        <!-- 当前牌会动态显示在这里 -->
+                    </div>
+                </div>
+                
+                <div class="draw-pile" id="drawPile">
+                    <div class="card back"></div>
+                </div>
+                
+                <div class="current-color" id="currentColor">
+                    当前颜色: 红色
+                </div>
+                
+                <div class="game-info">
+                    <div id="currentPlayer">当前回合: 玩家</div>
+                    <div id="gameDirection">方向: 顺时针</div>
+                </div>
+            </div>
+            
+            <div class="player-area">
+                <div class="player-hand" id="playerHand">
+                    <!-- 玩家手牌会动态显示在这里 -->
+                </div>
+                
+                <div class="player-actions">
+                    <button id="unoButton" class="action-button uno-button">喊UNO</button>
+                    <button id="drawButton" class="action-button draw-button">摸牌</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-message" id="gameMessage">
+            <!-- 游戏消息会显示在这里 -->
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../uno-game.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
