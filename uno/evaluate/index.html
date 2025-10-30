@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UNO X 评测场</title>
+    <title>UNO 评测场</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
         <div class="header">
             <h1>UNO X 评测场</h1>
-            <div class="player-info">
-                <span id="playerName">玩家</span>
-                <span id="deckCount">牌堆: 0</span>
-            </div>
         </div>
         
         <div class="game-board">
@@ -48,7 +44,8 @@
                 </div>
                 
                 <div class="draw-pile" id="drawPile">
-                    <div class="card back"></div>
+                    <div class="card back">UNO</div>
+                    <div class="deck-count" id="deckCount">0张</div>
                 </div>
                 
                 <div class="current-color" id="currentColor">
@@ -63,7 +60,7 @@
             
             <div class="player-area">
                 <div class="player-hand" id="playerHand">
-                    <!-- 玩家手牌会动态显示在这里1 -->
+                    <!-- 玩家手牌会动态显示在这里 -->
                 </div>
                 
                 <div class="player-actions">
@@ -79,7 +76,7 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../../uno-game.js"></script>
+    <script src="/uno/uno-game.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
