@@ -440,10 +440,10 @@ class UNOGame {
         if (card.value === 'draw5') displayValue = '+5';
         if (card.value === 'draw6') displayValue = '+6';
         if (card.value === 'draw7') displayValue = '+7';
-        if (card.value === 'turtle') displayValue = '乌龟牌';
-        if (card.value === 'wild') displayValue = '变色牌';
-        if (card.value === 'skip') displayValue = '跳过牌';
-        if (card.value === 'reverse') displayValue = '反转牌';
+        if (card.value === 'turtle') displayValue = '乌龟';
+        if (card.value === 'wild') displayValue = '万能';
+        if (card.value === 'skip') displayValue = '禁止';
+        if (card.value === 'reverse') displayValue = '翻转';
         
         return `${this.getColorName(card.color)} ${displayValue}`;
     }
@@ -466,7 +466,7 @@ class UNOGame {
             if (player.cards.length === 2) {
                 player.unoCalled = true;
                 this.unoButtonEnabled = false;
-                this.uiCallbacks.showMessage("您喊了UNO！");
+                this.uiCallbacks.showMessage("你喊了UNO！");
             } else {
                 this.uiCallbacks.showMessage("错误喊UNO！罚摸2张牌");
                 for (let i = 0; i < 2; i++) {
