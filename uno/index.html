@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UNO X v2.0.0</title>
+    <title>UNO X</title>
     <style>
         * {
             margin: 0;
@@ -55,6 +55,24 @@
             padding: 10px 20px;
             border-radius: 25px;
             font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .edit-season-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .edit-season-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
         
         .main-content {
@@ -190,6 +208,108 @@
             color: #ff6b6b;
         }
         
+        /* 模态框样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            min-width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-content h3 {
+            color: #ffcc00;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+        
+        .season-input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .season-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .modal-actions button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .confirm-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+        
+        .cancel-btn {
+            background: linear-gradient(135deg, #ff5252, #ff4081);
+            color: white;
+        }
+        
+        .modal-actions button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        
+        .admin-controls {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .admin-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+        }
+        
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -205,6 +325,12 @@
                 right: 0;
                 margin: 10px auto;
                 width: fit-content;
+                flex-direction: column;
+            }
+            
+            .modal-content {
+                min-width: 300px;
+                margin: 20px;
             }
         }
     </style>
@@ -215,7 +341,10 @@
         <div class="header">
             <h1>UNO X v2.0.0</h1>
             <p class="subtitle">by std114514</p>
-            <div class="season-display" id="seasonDisplay">赛季: 加载中...</div>
+            <div class="season-display" id="seasonDisplay">
+                <span id="seasonText">赛季: 加载中...</span>
+                <!-- 编辑按钮将在JS中动态添加 -->
+            </div>
         </div>
         
         <div id="content">
@@ -234,6 +363,11 @@
         function checkAuthStatus() {
             const userData = localStorage.getItem('userData');
             return userData ? JSON.parse(userData) : null;
+        }
+        
+        // 检查是否是管理员
+        function isAdmin(user) {
+            return user && user.username === 'std114514';
         }
         
         // 计算在线人数
@@ -343,6 +477,79 @@
             }
         }
         
+        // 更新赛季信息
+        async function updateSeason(newSeasonName) {
+            try {
+                // 首先将当前赛季标记为非当前
+                const { error: updateError } = await supabase
+                    .from('seasons')
+                    .update({ current: false })
+                    .eq('current', true);
+                
+                if (updateError) throw updateError;
+                
+                // 然后插入新的赛季
+                const { error: insertError } = await supabase
+                    .from('seasons')
+                    .insert([
+                        {
+                            name: newSeasonName,
+                            current: true,
+                            start_date: new Date().toISOString().split('T')[0]
+                        }
+                    ]);
+                
+                if (insertError) throw insertError;
+                
+                return true;
+            } catch (error) {
+                console.error('更新赛季失败:', error);
+                return false;
+            }
+        }
+        
+        // 显示修改赛季的模态框
+        function showEditSeasonModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>修改赛季名称</h3>
+                    <input type="text" class="season-input" id="newSeasonName" placeholder="输入新赛季名称" maxlength="50">
+                    <div class="modal-actions">
+                        <button class="confirm-btn" id="confirmSeasonChange">确认修改</button>
+                        <button class="cancel-btn" id="cancelSeasonChange">取消</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // 绑定确认按钮事件
+            document.getElementById('confirmSeasonChange').addEventListener('click', async () => {
+                const newSeasonName = document.getElementById('newSeasonName').value.trim();
+                
+                if (!newSeasonName) {
+                    alert('请输入赛季名称');
+                    return;
+                }
+                
+                const success = await updateSeason(newSeasonName);
+                if (success) {
+                    alert('赛季更新成功！');
+                    document.body.removeChild(modal);
+                    location.reload(); // 重新加载页面以更新显示
+                } else {
+                    alert('赛季更新失败，请重试');
+                }
+            });
+            
+            // 绑定取消按钮事件
+            document.getElementById('cancelSeasonChange').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+        }
+        
         // 渲染页面
         async function renderPage() {
             const user = checkAuthStatus();
@@ -366,7 +573,17 @@
             ]);
             
             // 更新赛季显示
-            document.getElementById('seasonDisplay').textContent = `赛季: ${seasonInfo.name}`;
+            const seasonText = document.getElementById('seasonText');
+            seasonText.textContent = `赛季: ${seasonInfo.name}`;
+            
+            // 如果是管理员，添加编辑按钮
+            if (isAdmin(user)) {
+                const editButton = document.createElement('button');
+                editButton.className = 'edit-season-btn';
+                editButton.innerHTML = '✏️ 编辑';
+                editButton.addEventListener('click', showEditSeasonModal);
+                document.getElementById('seasonDisplay').appendChild(editButton);
+            }
             
             // 计算在线人数
             const onlineCount = calculateOnlineCount();
@@ -423,6 +640,12 @@
                                     <div class="stat-value">${formatLevel(userData.evaluate, false)}</div>
                                 </div>
                             </div>
+                            ${isAdmin(user) ? `
+                                <div class="admin-controls">
+                                    <p>管理员控制面板</p>
+                                    <button class="admin-btn" onclick="showAdminPanel()">管理功能</button>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                     
@@ -450,6 +673,31 @@
                     </div>
                 </div>
             `;
+        }
+        
+        // 显示管理员面板
+        function showAdminPanel() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>管理员控制面板</h3>
+                    <div class="modal-actions" style="flex-direction: column; gap: 15px;">
+                        <button class="admin-btn" onclick="showEditSeasonModal()">修改赛季</button>
+                        <button class="admin-btn" onclick="resetLeaderboards()">重置排行榜</button>
+                        <button class="cancel-btn" onclick="this.closest('.modal-overlay').remove()">关闭</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        // 重置排行榜（示例功能）
+        function resetLeaderboards() {
+            if (confirm('确定要重置所有排行榜吗？此操作不可逆！')) {
+                alert('排行榜重置功能需要后端支持，请联系开发人员');
+            }
         }
         
         // 进入游戏
