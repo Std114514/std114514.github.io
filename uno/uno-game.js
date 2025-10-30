@@ -1,6 +1,7 @@
-// UNO游戏核心逻辑1
+// UNO游戏核心逻辑 - 修复版本
 class UNOGame {
     constructor(mode, playerName, uiCallbacks) {
+        console.log('UNOGame 构造函数被调用', { mode, playerName });
         this.mode = mode; // 'rating' 或 'evaluate'
         this.playerName = playerName;
         this.uiCallbacks = uiCallbacks; // UI回调函数
@@ -23,6 +24,7 @@ class UNOGame {
         this.winner = null;
         this.unoButtonEnabled = false;
         this.turtleTarget = null; // 乌龟牌目标玩家
+        this.isProcessingEffect = false; // 防止重复处理效果
         
         this.initializeDeck();
         this.shuffleDeck();
@@ -32,6 +34,7 @@ class UNOGame {
     
     // 初始化牌堆
     initializeDeck() {
+        console.log('初始化牌堆');
         this.deck = [];
         const colors = ['red', 'blue', 'green', 'yellow'];
         const values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'skip', 'reverse', 'draw2'];
@@ -71,10 +74,13 @@ class UNOGame {
             this.deck.push({ color, value: 'turtle', type: 'special' });
             this.deck.push({ color, value: 'turtle', type: 'special' });
         }
+        
+        console.log('牌堆初始化完成，共', this.deck.length, '张牌');
     }
     
     // 洗牌
     shuffleDeck() {
+        console.log('洗牌中...');
         for (let i = this.deck.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
@@ -83,16 +89,23 @@ class UNOGame {
     
     // 发牌
     dealCards() {
+        console.log('发牌中...');
         for (let player of this.players) {
+            player.cards = []; // 清空手牌
             for (let i = 0; i < 7; i++) {
-                player.cards.push(this.drawCard());
+                const card = this.drawCard();
+                if (card) {
+                    player.cards.push(card);
+                }
             }
+            console.log(player.name, '获得', player.cards.length, '张牌');
         }
     }
     
     // 从牌堆抽牌
     drawCard() {
         if (this.deck.length <= 15) {
+            console.log('牌堆不足，补充牌堆...');
             // 补两副牌
             const newDeck = [];
             const colors = ['red', 'blue', 'green', 'yellow'];
@@ -134,16 +147,14 @@ class UNOGame {
             }
             
             this.deck = this.deck.concat(newDeck);
-            this.uiCallbacks.showMessage("牌堆已补充！");
+            if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+                this.uiCallbacks.showMessage("牌堆已补充！");
+            }
         }
         
         if (this.deck.length === 0) {
-            // 如果牌堆空了，从弃牌堆重新洗牌（除了最上面一张）
-            const topCard = this.discardPile.pop();
-            this.deck = this.discardPile;
-            this.discardPile = [topCard];
-            this.shuffleDeck();
-            this.uiCallbacks.showMessage("弃牌堆已重新洗牌！");
+            console.error('牌堆为空！');
+            return null;
         }
         
         return this.deck.pop();
@@ -151,12 +162,20 @@ class UNOGame {
     
     // 开始游戏
     startGame() {
+        console.log('开始游戏...');
         // 从牌堆抽一张牌作为起始牌
         let startCard = this.drawCard();
-        while (startCard.color === 'black') {
+        let attempts = 0;
+        while (startCard && startCard.color === 'black' && attempts < 10) {
             // 如果第一张是黑色牌，重新抽
             this.deck.unshift(startCard);
             startCard = this.drawCard();
+            attempts++;
+        }
+        
+        if (!startCard) {
+            console.error('无法获取起始牌！');
+            return;
         }
         
         this.discardPile.push(startCard);
@@ -165,62 +184,104 @@ class UNOGame {
         
         // 随机决定起始玩家
         this.currentPlayerIndex = Math.floor(Math.random() * 4);
-        this.uiCallbacks.showMessage(`游戏开始！${this.players[this.currentPlayerIndex].name}先手`);
+        console.log('起始玩家:', this.players[this.currentPlayerIndex].name);
+        
+        if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+            this.uiCallbacks.showMessage(`游戏开始！${this.players[this.currentPlayerIndex].name}先手`);
+        }
         
         // 处理起始牌的特殊效果
-        this.handleCardEffect(startCard);
+        this.handleCardEffect(startCard, true);
         
         // 如果起始玩家不是人类玩家，开始AI回合
         if (!this.players[this.currentPlayerIndex].isHuman) {
+            console.log('AI回合开始');
             setTimeout(() => this.aiTurn(), 1000);
+        } else {
+            console.log('玩家回合开始');
+            this.unoButtonEnabled = true;
         }
     }
     
-    // 处理卡牌效果
-    handleCardEffect(card) {
+    // 处理卡牌效果 - 修复版本
+    handleCardEffect(card, isStartCard = false) {
+        if (this.isProcessingEffect) {
+            console.log('正在处理效果，跳过重复处理');
+            return;
+        }
+        
+        this.isProcessingEffect = true;
+        console.log('处理卡牌效果:', card);
+        
+        if (!this.uiCallbacks || !this.uiCallbacks.showMessage) {
+            this.isProcessingEffect = false;
+            return;
+        }
+
+        const currentPlayer = this.players[this.currentPlayerIndex];
+        
         switch (card.value) {
             case 'skip':
-                this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了跳过牌！`);
+                this.uiCallbacks.showMessage(`${currentPlayer.name}使用了跳过牌！`);
+                // 跳过下一个玩家
                 this.nextPlayer();
                 break;
+                
             case 'reverse':
-                this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了反转牌！`);
+                this.uiCallbacks.showMessage(`${currentPlayer.name}使用了反转牌！`);
                 this.direction *= -1;
+                // 反转后当前玩家继续出牌
+                if (!isStartCard) {
+                    this.nextPlayer();
+                }
                 break;
+                
             case 'draw2':
                 this.pendingDraw += 2;
                 this.pendingDrawTarget = this.getNextPlayerIndex();
-                this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了+2牌！${this.players[this.pendingDrawTarget].name}需要摸2张牌`);
+                this.uiCallbacks.showMessage(`${currentPlayer.name}使用了+2牌！${this.players[this.pendingDrawTarget].name}需要摸2张牌`);
+                this.nextPlayer();
                 break;
+                
             case 'draw4':
                 this.pendingDraw += 4;
                 this.pendingDrawTarget = this.getNextPlayerIndex();
-                this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了+4牌！${this.players[this.pendingDrawTarget].name}需要摸4张牌`);
+                this.uiCallbacks.showMessage(`${currentPlayer.name}使用了+4牌！${this.players[this.pendingDrawTarget].name}需要摸4张牌`);
+                this.nextPlayer();
                 break;
+                
             case 'draw5':
                 this.pendingDraw += 5;
                 this.pendingDrawTarget = this.getNextPlayerIndex();
-                this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了+5牌！${this.players[this.pendingDrawTarget].name}需要摸5张牌`);
+                this.uiCallbacks.showMessage(`${currentPlayer.name}使用了+5牌！${this.players[this.pendingDrawTarget].name}需要摸5张牌`);
+                this.nextPlayer();
                 break;
+                
             case 'draw6':
                 this.pendingDraw += 6;
                 this.pendingDrawTarget = this.getNextPlayerIndex();
-                this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了+6牌！${this.players[this.pendingDrawTarget].name}需要摸6张牌`);
+                this.uiCallbacks.showMessage(`${currentPlayer.name}使用了+6牌！${this.players[this.pendingDrawTarget].name}需要摸6张牌`);
+                this.nextPlayer();
                 break;
+                
             case 'draw7':
                 this.pendingDraw += 7;
                 this.pendingDrawTarget = this.getNextPlayerIndex();
-                this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了+7牌！${this.players[this.pendingDrawTarget].name}需要摸7张牌`);
+                this.uiCallbacks.showMessage(`${currentPlayer.name}使用了+7牌！${this.players[this.pendingDrawTarget].name}需要摸7张牌`);
+                this.nextPlayer();
                 break;
+                
             case 'turtle':
                 // 乌龟牌效果：指定任意一人+3张
-                if (this.players[this.currentPlayerIndex].isHuman) {
+                if (currentPlayer.isHuman) {
                     this.uiCallbacks.showTurtleTargetSelection(this.players, (targetIndex) => {
                         this.turtleTarget = targetIndex;
                         this.pendingDraw += 3;
                         this.pendingDrawTarget = targetIndex;
-                        this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了乌龟牌！${this.players[targetIndex].name}需要摸3张牌`);
+                        this.uiCallbacks.showMessage(`${currentPlayer.name}使用了乌龟牌！${this.players[targetIndex].name}需要摸3张牌`);
+                        // 乌龟牌使用后正常切换到下一个玩家
                         this.nextPlayer();
+                        this.isProcessingEffect = false;
                     });
                 } else {
                     // AI随机选择一个目标（除了自己）
@@ -232,25 +293,35 @@ class UNOGame {
                     this.turtleTarget = targetIndex;
                     this.pendingDraw += 3;
                     this.pendingDrawTarget = targetIndex;
-                    this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了乌龟牌！${this.players[targetIndex].name}需要摸3张牌`);
+                    this.uiCallbacks.showMessage(`${currentPlayer.name}使用了乌龟牌！${this.players[targetIndex].name}需要摸3张牌`);
+                    // AI使用乌龟牌后正常切换到下一个玩家
+                    this.nextPlayer();
+                    this.isProcessingEffect = false;
                 }
-                break;
+                return; // 返回，不重置处理标志
+                
             case 'wild':
-                if (this.players[this.currentPlayerIndex].isHuman) {
+                if (currentPlayer.isHuman) {
                     this.uiCallbacks.showColorSelection((color) => {
                         this.currentColor = color;
-                        this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了变色牌！颜色变为${this.getColorName(color)}`);
+                        this.uiCallbacks.showMessage(`${currentPlayer.name}使用了变色牌！颜色变为${this.getColorName(color)}`);
+                        // 变色牌使用后正常切换到下一个玩家
                         this.nextPlayer();
+                        this.isProcessingEffect = false;
                     });
                 } else {
                     // AI随机选择一个颜色
                     const colors = ['red', 'blue', 'green', 'yellow'];
                     this.currentColor = colors[Math.floor(Math.random() * 4)];
-                    this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}使用了变色牌！颜色变为${this.getColorName(this.currentColor)}`);
+                    this.uiCallbacks.showMessage(`${currentPlayer.name}使用了变色牌！颜色变为${this.getColorName(this.currentColor)}`);
+                    // AI使用变色牌后正常切换到下一个玩家
                     this.nextPlayer();
+                    this.isProcessingEffect = false;
                 }
-                break;
+                return; // 返回，不重置处理标志
         }
+        
+        this.isProcessingEffect = false;
     }
     
     // 获取颜色名称
@@ -273,9 +344,12 @@ class UNOGame {
         return nextIndex;
     }
     
-    // 切换到下一个玩家
+    // 切换到下一个玩家 - 修复版本
     nextPlayer() {
+        if (this.gameOver) return;
+        
         this.currentPlayerIndex = this.getNextPlayerIndex();
+        console.log('切换到玩家:', this.players[this.currentPlayerIndex].name);
         
         // 重置UNO按钮状态
         if (this.players[this.currentPlayerIndex].isHuman) {
@@ -293,10 +367,15 @@ class UNOGame {
         // 如果下一个玩家需要摸牌
         if (this.pendingDraw > 0 && this.pendingDrawTarget === this.currentPlayerIndex) {
             const player = this.players[this.currentPlayerIndex];
-            this.uiCallbacks.showMessage(`${player.name}需要摸${this.pendingDraw}张牌！`);
+            if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+                this.uiCallbacks.showMessage(`${player.name}需要摸${this.pendingDraw}张牌！`);
+            }
             
             for (let i = 0; i < this.pendingDraw; i++) {
-                player.cards.push(this.drawCard());
+                const card = this.drawCard();
+                if (card) {
+                    player.cards.push(card);
+                }
             }
             this.pendingDraw = 0;
             this.pendingDrawTarget = null;
@@ -307,22 +386,30 @@ class UNOGame {
         }
         
         // 显示当前玩家回合
-        this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}的回合`);
+        if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+            this.uiCallbacks.showMessage(`${this.players[this.currentPlayerIndex].name}的回合`);
+        }
         
         // 如果是AI玩家，开始AI回合
         if (!this.players[this.currentPlayerIndex].isHuman) {
+            console.log('AI回合开始');
             setTimeout(() => this.aiTurn(), 1000);
         }
     }
     
     // AI回合
     aiTurn() {
+        if (this.gameOver) return;
+        
         const ai = this.players[this.currentPlayerIndex];
+        console.log('AI思考中:', ai.name);
         
         // AI有87%概率喊UNO（当只剩一张牌时）
         if (ai.cards.length === 1 && Math.random() < 0.87) {
             ai.unoCalled = true;
-            this.uiCallbacks.showMessage(`${ai.name}喊了UNO！`);
+            if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+                this.uiCallbacks.showMessage(`${ai.name}喊了UNO！`);
+            }
         }
         
         // 检查可以出的牌
@@ -334,13 +421,10 @@ class UNOGame {
             this.playCard(cardToPlay, ai.cards.indexOf(cardToPlay));
         } else {
             // 不能出牌，摸一张
-            this.uiCallbacks.showMessage(`${ai.name}无法出牌，摸一张牌`);
+            if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+                this.uiCallbacks.showMessage(`${ai.name}无法出牌，摸一张牌`);
+            }
             this.drawCardForCurrentPlayer();
-        }
-
-        // 在 UNOGame 类的 aiTurn 方法末尾添加：
-        if (this.uiCallbacks && this.uiCallbacks.onAITurnComplete) {
-            this.uiCallbacks.onAITurnComplete();
         }
     }
     
@@ -394,20 +478,28 @@ class UNOGame {
         });
     }
     
-    // 出牌
+    // 出牌 - 修复版本
     playCard(card, cardIndex) {
         const player = this.players[this.currentPlayerIndex];
+        console.log(player.name, '出牌:', card);
         
         // 检查是否漏喊UNO
         if (player.cards.length === 2 && !player.unoCalled && player.isHuman) {
-            this.uiCallbacks.showMessage("您漏喊UNO！罚摸2张牌");
+            if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+                this.uiCallbacks.showMessage("你漏喊UNO！罚摸2张牌");
+            }
             for (let i = 0; i < 2; i++) {
-                player.cards.push(this.drawCard());
+                const newCard = this.drawCard();
+                if (newCard) {
+                    player.cards.push(newCard);
+                }
             }
         }
         
         // 从玩家手牌中移除
-        player.cards.splice(cardIndex, 1);
+        if (cardIndex >= 0 && cardIndex < player.cards.length) {
+            player.cards.splice(cardIndex, 1);
+        }
         
         // 添加到弃牌堆
         this.discardPile.push(card);
@@ -418,21 +510,23 @@ class UNOGame {
         }
         this.currentValue = card.value;
         
-        this.uiCallbacks.showMessage(`${player.name}出了${this.getCardDisplayName(card)}`);
+        if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+            this.uiCallbacks.showMessage(`${player.name}出了${this.getCardDisplayName(card)}`);
+        }
         
         // 处理卡牌效果
         this.handleCardEffect(card);
         
-        // 如果是乌龟牌或变色牌，它们已经在handleCardEffect中处理了nextPlayer
+        // 检查是否赢了
+        if (player.cards.length === 0) {
+            this.winner = this.currentPlayerIndex;
+            this.endGame();
+            return;
+        }
+        
+        // 对于非交互型卡牌（非乌龟牌和变色牌），在此调用nextPlayer
+        // 注意：乌龟牌和变色牌在效果处理的回调中已经调用了nextPlayer
         if (card.value !== 'turtle' && card.value !== 'wild') {
-            // 检查是否赢了
-            if (player.cards.length === 0) {
-                this.winner = this.currentPlayerIndex;
-                this.endGame();
-                return;
-            }
-            
-            // 切换到下一个玩家
             this.nextPlayer();
         }
     }
@@ -457,8 +551,12 @@ class UNOGame {
     drawCardForCurrentPlayer() {
         const player = this.players[this.currentPlayerIndex];
         const newCard = this.drawCard();
-        player.cards.push(newCard);
-        this.uiCallbacks.showMessage(`${player.name}摸了一张牌`);
+        if (newCard) {
+            player.cards.push(newCard);
+        }
+        if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+            this.uiCallbacks.showMessage(`${player.name}摸了一张牌`);
+        }
         
         // 摸牌后跳过回合
         this.nextPlayer();
@@ -471,11 +569,18 @@ class UNOGame {
             if (player.cards.length === 2) {
                 player.unoCalled = true;
                 this.unoButtonEnabled = false;
-                this.uiCallbacks.showMessage("你喊了UNO！");
+                if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+                    this.uiCallbacks.showMessage("你喊了UNO！");
+                }
             } else {
-                this.uiCallbacks.showMessage("错误喊UNO！罚摸2张牌");
+                if (this.uiCallbacks && this.uiCallbacks.showMessage) {
+                    this.uiCallbacks.showMessage("错误喊UNO！罚摸2张牌");
+                }
                 for (let i = 0; i < 2; i++) {
-                    player.cards.push(this.drawCard());
+                    const card = this.drawCard();
+                    if (card) {
+                        player.cards.push(card);
+                    }
                 }
             }
         }
