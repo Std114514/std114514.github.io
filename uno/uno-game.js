@@ -337,6 +337,11 @@ class UNOGame {
             this.uiCallbacks.showMessage(`${ai.name}无法出牌，摸一张牌`);
             this.drawCardForCurrentPlayer();
         }
+
+        // 在 UNOGame 类的 aiTurn 方法末尾添加：
+        if (this.uiCallbacks && this.uiCallbacks.onAITurnComplete) {
+            this.uiCallbacks.onAITurnComplete();
+        }
     }
     
     // AI选择出牌策略
