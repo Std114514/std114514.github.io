@@ -156,6 +156,14 @@
             font-weight: normal;
         }
         
+        /* UNO 按钮样式 */
+        .uno-button {
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            color: white;
+            grid-column: 1 / -1; /* 跨所有列 */
+            min-height: 120px;
+        }
+        
         /* 签到区域样式 */
         .signin-section {
             background: rgba(255, 255, 255, 0.15);
@@ -294,6 +302,10 @@
             .nav-button {
                 width: 100%;
                 max-width: 300px;
+            }
+            
+            .uno-button {
+                grid-column: 1;
             }
             
             h1 {
@@ -512,11 +524,6 @@
             background: linear-gradient(135deg, #00BCD4, #0097A7);
             color: white;
         }
-
-        .uno-button {
-            background: linear-gradient(135deg, #FF6B00, #FF8E00);
-            color: white;
-        }
     </style>
     
     <!-- 引入 Supabase SDK -->
@@ -572,7 +579,14 @@
                 <div>78 长度测量</div>
                 <div class="button-description">v1.0.7</div>
             </a>
-            
+
+            <!-- 新增的 UNO 按钮 -->
+            <a href="/uno/" class="nav-button uno-button">
+                <div class="button-icon">🃏</div>
+                <div>联机 UNO</div>
+                <div class="button-description">v2.0.0</div>
+            </a>
+
             <a href="/forum/" class="nav-button forum-button">
                 <div class="button-icon">💬</div>
                 <div>论坛</div>
