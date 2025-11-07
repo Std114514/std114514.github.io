@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JM 本子下载</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            width: 100%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(45deg, #ffcc00, #ff6b00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 40px;
+            width: 100%;
+        }
+        
+        .wheel-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+        }
+        
+        .wheel-container {
+            position: relative;
+            width: 350px;
+            height: 350px;
+            margin: 20px 0;
+        }
+        
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                #ff5252, #ff4081, #e040fb, #7c4dff,
+                #536dfe, #448aff, #40c4ff, #18ffff,
+                #64ffda, #69f0ae, #b2ff59, #eeff41,
+                #ffff00, #ffd740, #ffab40, #ff6e40
+            );
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.16, 0.99);
+            border: 8px solid #ffcc00;
+        }
+        
+        .wheel-number {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.5);
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid white;
+        }
+        
+        .wheel-pointer {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 50px;
+            background-color: #ffcc00;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            z-index: 20;
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.8);
+            filter: drop-shadow(0 0 5px rgba(255, 204, 0, 0.5));
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+        }
+        
+        .result-display {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.3rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .result-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffcc00;
+            margin-top: 5px;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+        }
+        
+        button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(45deg, #ff5252, #ff4081);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 82, 82, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(255, 82, 82, 0.6);
+        }
+        
+        button:active {
+            transform: translateY(2px);
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .leaderboard-section {
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .leaderboard-title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2rem;
+            color: #ffcc00;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+        }
+        
+        .score-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        input {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.5);
+        }
+        
+        .leaderboard-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .leaderboard-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .leaderboard-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .leaderboard-list::-webkit-scrollbar-thumb {
+            background: #ffcc00;
+            border-radius: 10px;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+        
+        .leaderboard-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+            border-left: 4px solid #ffcc00;
+        }
+        
+        .rank {
+            font-weight: bold;
+            color: #ffcc00;
+            width: 30px;
+            font-size: 1.2rem;
+        }
+        
+        .player-name {
+            flex: 1;
+            text-align: left;
+            font-weight: 500;
+        }
+        
+        .player-score {
+            font-weight: bold;
+            width: 80px;
+            text-align: right;
+            font-size: 1.2rem;
+        }
+        
+        .top-score {
+            background: rgba(255, 204, 0, 0.2);
+            border: 1px solid rgba(255, 204, 0, 0.5);
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .wheel-section, .leaderboard-section {
+                width: 100%;
+            }
+            
+            .wheel-container {
+                width: 300px;
+                height: 300px;
+            }
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff5252, #ffcc00);
+            width: 0%;
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+        
+        .info-message {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .warning {
+            background: rgba(255, 204, 0, 0.2);
+            color: #ffcc00;
+            border: 1px solid rgba(255, 204, 0, 0.5);
+        }
+        
+        .leaderboard-note {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            border-radius: 8px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2rem;
+        }
+        
+        .ip-display {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            text-align: center;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>JMComic Download v2.0.0</h1>
+            <p class="subtitle">by std114514</p>
+            <p class="subtitle">zip大小超过25MB的需要分多次下载</p>
+        </header>
+    </div>
+    <a href="/src/0114514.zip" download>
+      <button>P1-0114514[怪奇日蚀(绫野なおと)][Bitter100％]</button>
+    </a>
+    <a href="/src/0144235.zip" download>
+      <button>P1-0144235(同人CG集) [[Aya Swan] 丽塔的蔷薇一梦 (崩坏3)</button>
+    </a>
+    <a href="/src/0350234.zip" download>
+      <button>P1-0350234董卓 上+下</button>
+    </a>
+    <a href="/src/0350235.zip" download>
+      <button>P1-0350235董卓 下</button>
+    </a>
+    <a href="/src/0433651-1.zip" download>
+      <button>P1-0433651[Pixiv] 666 (74353944)</button>
+    </a>
+    <a href="/src/0433651-2.zip" download>
+      <button>P2-0433651[Pixiv] 666 (74353944)</button>
+    </a>
+    <a href="/src/0480847.zip" download>
+      <button>P1-0480847纲手的秘术（K记翻译） [AfroBull] Tsunade (Naruto)</button>
+    </a>
+    <a href="/src/0611650.zip" download>
+      <button>P1-0611650植物大战僵尸</button>
+    </a>
+    <a href="/src/0618451-1.zip" download>
+      <button>P1-0618451(C104) [キノコの王样 (よろず)] Dick Neck Mix! 3 ブルアカ&よろず 首チンコ合同志 Vol.3 (ブルーアーカイブ) [DL版]</button>
+    </a>
+    <a href="/src/0618451-2.zip" download>
+      <button>P2-0618451(C104) [キノコの王样 (よろず)] Dick Neck Mix! 3 ブルアカ&よろず 首チンコ合同志 Vol.3 (ブルーアーカイブ) [DL版]</button>
+    </a>
+    <a href="/src/0618451-3.zip" download>
+      <button>P3-0618451(C104) [キノコの王样 (よろず)] Dick Neck Mix! 3 ブルアカ&よろず 首チンコ合同志 Vol.3 (ブルーアーカイブ) [DL版]</button>
+    </a>
+    <a href="/src/0636531.zip" download>
+      <button>P1-0636531贝利亚AI裸照</button>
+    </a>
+    <a href="/src/0637857.zip" download>
+      <button>P1-0637857[少女失踪案] 重口警告！AI奶龙</button>
+    </a>
+    <a href="/src/1033298.zip" download>
+      <button>P1-1033298白露的攻略手册</button>
+    </a>
+    <a href="/src/1050701.zip" download>
+      <button>P1-1050701[不想上班_花吹雪] 白露攻略手册二</button>
+    </a>
+    <a href="/src/1075919.zip" download>
+      <button>P1-1075919白露攻略手册三</button>
+    </a>
+    <a href="/src/1197642.zip" download>
+      <button>P1-1197642白露攻略手册（外传）</button>
+    </a>
+    <a href="/src/1204927.zip" download>
+      <button>P1-1204927[个人机翻润色] [滑らか精肉店 (kamasu)] ビンカン地味子は生きヅラい!!! [中国翻译]</button>
+    </a>
+    <a href="/src/1205846.zip" download>
+      <button>P1-1205846[才女汉化组] [Des.] 三个猪比</button>
+    </a>
+    <a href="/src/1209517.zip" download>
+      <button>P1-1209517东北雨姐本子</button>
+    </a>
+    <a href="/src/1220076.zip" download>
+      <button>P1-1220076[かわさき] 中身は鬼の性欲とメンヘラが残りまくっている元地雷系の大人っぽい女の子可爱いですよねっていう漫画 [中国翻译]</button>
+    </a>
+    <a href="/src/1220693.zip" download>
+      <button>P1-1220693[毛k] 东北雨姐</button>
+    </a>
+</body>
+</html>
