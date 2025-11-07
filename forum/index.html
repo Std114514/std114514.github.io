@@ -659,7 +659,7 @@
 
     <div class="container">
         <header>
-            <h1>Discuss Forum v1.1.0</h1>
+            <h1>Discussion</h1>
             <p>by std114514</p>
             <button class="back-btn" onclick="window.location.href='/'">返回首页</button>
         </header>
@@ -668,7 +668,7 @@
             <div>
                 <!-- 帖子列表视图 -->
                 <div id="postsListView">
-                    <!-- 发帖区域111 -->
+                    <!-- 发帖区域 -->
                     <div class="new-post-section" id="newPostSection" style="display: none;">
                         <h3>发表新帖子</h3>
                         <form class="post-form" id="postForm">
@@ -749,6 +749,18 @@
         
         // 当前查看的帖子ID
         let currentPostId = null;
+        
+        // 检查URL参数，如果有id参数，则直接显示对应的帖子详情
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const postId = urlParams.get('id');
+            
+            if (postId) {
+                showPostDetail(postId);
+                // 更新URL但不刷新页面
+                window.history.replaceState({}, '', `?id=${postId}`);
+            }
+        }
         
         // 检查登录状态
         function checkAuthStatus() {
@@ -833,6 +845,8 @@
             
             // 初始化登录状态
             checkAuthStatus();
+            // 检查URL参数
+            checkUrlParams();
             
             // 绑定顶部登录按钮事件
             topLoginBtn.addEventListener('click', function() {
@@ -996,6 +1010,9 @@
             // 显示帖子详情
             async function showPostDetail(postId) {
                 currentPostId = postId;
+                
+                // 更新URL参数
+                window.history.replaceState({}, '', `?id=${postId}`);
                 
                 try {
                     // 获取帖子详情
@@ -1209,6 +1226,8 @@
                 postsListView.style.display = 'block';
                 postDetailView.style.display = 'none';
                 currentPostId = null;
+                // 清除URL参数
+                window.history.replaceState({}, '', window.location.pathname);
                 loadPosts(); // 刷新帖子列表
             });
             
@@ -1288,7 +1307,7 @@
                 }
             }
             
-            // 重新设计投票处理逻辑
+            // 处理帖子投票
             async function handlePostVote(postId, voteType) {
                 const user = checkAuthStatus();
                 if (!user) {
@@ -1396,7 +1415,7 @@
                 }
             }
             
-            // 类似的修复也需要应用到 handleCommentVote 函数
+            // 处理评论投票
             async function handleCommentVote(commentId, voteType) {
                 const user = checkAuthStatus();
                 if (!user) {
@@ -1494,96 +1513,6 @@
                 } catch (error) {
                     console.error('投票失败:', error);
                     showMessage('投票失败，请稍后重试', 'error');
-                }
-            }
-            
-            // 更新帖子投票计数（修复版）
-            async function updatePostVoteCount(postId, voteChange) {
-                try {
-                    // 获取当前帖子
-                    const { data: post, error: postError } = await supabase
-                        .from('posts')
-                        .select('likes, dislikes')
-                        .eq('id', postId)
-                        .single();
-                    
-                    if (postError) throw postError;
-                    
-                    let newLikes = post.likes || 0;
-                    let newDislikes = post.dislikes || 0;
-                    
-                    // 根据voteChange的正负分别处理点赞和点踩
-                    // voteChange为正表示点赞相关变化，为负表示点踩相关变化
-                    // voteChange的绝对值表示变化的大小
-                    if (voteChange > 0) {
-                        // 点赞相关变化
-                        newLikes += voteChange;
-                    } else if (voteChange < 0) {
-                        // 点踩相关变化
-                        newDislikes += Math.abs(voteChange);
-                    }
-                    
-                    // 确保不会出现负数
-                    newLikes = Math.max(0, newLikes);
-                    newDislikes = Math.max(0, newDislikes);
-                    
-                    // 更新帖子
-                    const { error: updateError } = await supabase
-                        .from('posts')
-                        .update({ 
-                            likes: newLikes,
-                            dislikes: newDislikes
-                        })
-                        .eq('id', postId);
-                    
-                    if (updateError) throw updateError;
-                    
-                } catch (error) {
-                    console.error('更新投票计数失败:', error);
-                    throw error;
-                }
-            }
-            
-            // 更新评论投票计数（修复版）
-            async function updateCommentVoteCount(commentId, voteChange) {
-                try {
-                    // 获取当前评论
-                    const { data: comment, error: commentError } = await supabase
-                        .from('comments')
-                        .select('likes, dislikes')
-                        .eq('id', commentId)
-                        .single();
-                    
-                    if (commentError) throw commentError;
-                    
-                    let newLikes = comment.likes || 0;
-                    let newDislikes = comment.dislikes || 0;
-                    
-                    // 根据voteChange的正负分别处理点赞和点踩
-                    if (voteChange > 0) {
-                        newLikes += voteChange;
-                    } else if (voteChange < 0) {
-                        newDislikes += Math.abs(voteChange);
-                    }
-                    
-                    // 确保不会出现负数
-                    newLikes = Math.max(0, newLikes);
-                    newDislikes = Math.max(0, newDislikes);
-                    
-                    // 更新评论
-                    const { error: updateError } = await supabase
-                        .from('comments')
-                        .update({ 
-                            likes: newLikes,
-                            dislikes: newDislikes
-                        })
-                        .eq('id', commentId);
-                    
-                    if (updateError) throw updateError;
-                    
-                } catch (error) {
-                    console.error('更新评论投票计数失败:', error);
-                    throw error;
                 }
             }
             
@@ -1720,6 +1649,8 @@
                         postsListView.style.display = 'block';
                         postDetailView.style.display = 'none';
                         currentPostId = null;
+                        // 清除URL参数
+                        window.history.replaceState({}, '', window.location.pathname);
                     }
                     
                     loadPosts(); // 刷新帖子列表
