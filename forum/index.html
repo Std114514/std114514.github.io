@@ -846,7 +846,7 @@
             // 初始化登录状态
             checkAuthStatus();
             // 检查URL参数
-            checkUrlParams();
+//          checkUrlParams();
             
             // 绑定顶部登录按钮事件
             topLoginBtn.addEventListener('click', function() {
@@ -878,6 +878,12 @@
                 } catch (error) {
                     console.error('加载帖子失败:', error);
                     postsList.innerHTML = '<div class="post"><div class="post-content">加载帖子失败，请刷新页面重试</div></div>';
+                }
+                // 检查URL参数，如果有id，则显示对应的帖子详情
+                const urlParams = new URLSearchParams(window.location.search);
+                const postId = urlParams.get('id');
+                if (postId) {
+                    showPostDetail(postId);
                 }
             }
             
