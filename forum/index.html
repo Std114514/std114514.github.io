@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>论坛 - 支持图片上传</title>
+    <title>论坛</title>
     <style>
         * {
             margin: 0;
@@ -338,7 +338,300 @@
             border: 1px solid rgba(244, 67, 54, 0.5);
         }
         
-        /* 图片上传样式 */
+        /* 通知系统样式 */
+        .notification-container {
+            position: relative;
+            display: inline-block;
+            margin-right: 15px;
+        }
+        
+        .notification-bell {
+            font-size: 1.5rem;
+            cursor: pointer;
+            position: relative;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+        
+        .notification-bell:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 350px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .notification-header h3 {
+            margin: 0;
+            color: #ffcc00;
+        }
+        
+        .notification-header button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .notification-header button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .notification-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .notification-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .notification-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .notification-item.unread {
+            background-color: rgba(255, 204, 0, 0.1);
+            border-left: 3px solid #ffcc00;
+        }
+        
+        .notification-item.read {
+            opacity: 0.7;
+        }
+        
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #ffcc00;
+        }
+        
+        .notification-content {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .notification-time {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        .notification-empty {
+            padding: 20px;
+            text-align: center;
+            opacity: 0.7;
+        }
+        
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1002;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            color: #ffcc00;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ffcc00;
+        }
+        
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            resize: vertical;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .btn-secondary {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-primary {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(156, 39, 176, 0.4);
+        }
+        
+        /* 帖子详情视图 */
+        .post-detail-view {
+            display: none;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .post-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .back-to-list {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #ff5252, #ff4081);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .back-to-list:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(255, 82, 82, 0.4);
+        }
+        
+        @media (max-width: 768px) {
+            .forum-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .notification-dropdown {
+                width: 300px;
+                right: -50px;
+            }
+        }
+
+        /* 顶部用户信息区域样式 */
+        .top-user-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .top-user-info .login-btn {
+            margin-top: 0;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+        
+        .welcome-text {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
+        /* 图片上传相关样式 */
         .image-upload-container {
             margin-bottom: 15px;
         }
@@ -400,48 +693,6 @@
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
-        
-        /* 顶部用户信息区域样式 */
-        .top-user-info {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px 20px;
-            border-radius: 25px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .top-user-info .login-btn {
-            margin-top: 0;
-            padding: 8px 16px;
-            font-size: 0.9rem;
-        }
-        
-        .welcome-text {
-            color: #ffcc00;
-            font-weight: bold;
-        }
-        
-        /* 加载动画 */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
     
     <!-- 引入 Supabase SDK -->
@@ -471,8 +722,8 @@
 
     <div class="container">
         <header>
-            <h1>Discuss Forum v1.3.0</h1>
-            <p>by std114514 - 支持图片上传</p>
+            <h1>Discussion</h1>
+            <p>by std114514</p>
             <button class="back-btn" onclick="window.location.href='/'">返回首页</button>
         </header>
         
@@ -512,9 +763,7 @@
                     <div class="posts-section">
                         <h3>最新帖子</h3>
                         <div id="postsList">
-                            <div class="post">
-                                <div class="post-content">加载中... <span class="loading"></span></div>
-                            </div>
+                            <!-- 帖子将通过JS动态加载 -->
                         </div>
                     </div>
                 </div>
@@ -526,9 +775,7 @@
                         <button class="back-to-list" id="backToList">返回列表</button>
                     </div>
                     <div id="postDetailContent">
-                        <div class="post">
-                            <div class="post-content">加载帖子详情中... <span class="loading"></span></div>
-                        </div>
+                        <!-- 帖子详情内容将通过JS动态加载 -->
                     </div>
                 </div>
             </div>
@@ -578,8 +825,6 @@
         
         // 当前查看的帖子ID
         let currentPostId = null;
-        // 帖子数据缓存
-        let postsCache = [];
         // 当前上传的图片文件
         let currentPostImage = null;
         let currentCommentImage = null;
@@ -590,10 +835,9 @@
             const postId = urlParams.get('id');
             
             if (postId) {
-                // 延迟执行，确保帖子列表已加载
-                setTimeout(() => {
-                    showPostDetail(postId);
-                }, 100);
+                showPostDetail(postId);
+                // 更新URL但不刷新页面
+                window.history.replaceState({}, '', `?id=${postId}`);
             }
         }
         
@@ -713,6 +957,8 @@
             
             // 初始化登录状态
             checkAuthStatus();
+            // 检查URL参数
+            checkUrlParams();
             
             // 绑定顶部登录按钮事件
             topLoginBtn.addEventListener('click', function() {
@@ -780,12 +1026,7 @@
                     
                     if (error) throw error;
                     
-                    postsCache = data || [];
-                    renderPosts(postsCache);
-                    
-                    // 加载完成后检查URL参数
-                    checkUrlParams();
-                    
+                    renderPosts(data || []);
                 } catch (error) {
                     console.error('加载帖子失败:', error);
                     postsList.innerHTML = '<div class="post"><div class="post-content">加载帖子失败，请刷新页面重试</div></div>';
@@ -930,10 +1171,6 @@
                 
                 // 更新URL参数
                 window.history.replaceState({}, '', `?id=${postId}`);
-                
-                // 立即切换到详情视图
-                postsListView.style.display = 'none';
-                postDetailView.style.display = 'block';
                 
                 try {
                     // 获取帖子详情
@@ -1089,9 +1326,12 @@
                     // 绑定详情页的事件
                     bindDetailPageEvents();
                     
+                    // 切换到详情视图
+                    postsListView.style.display = 'none';
+                    postDetailView.style.display = 'block';
+                    
                 } catch (error) {
                     console.error('加载帖子详情失败:', error);
-                    postDetailContent.innerHTML = '<div class="post"><div class="post-content">加载帖子详情失败，请稍后重试</div></div>';
                     showMessage('加载帖子详情失败，请稍后重试', 'error');
                 }
             }
