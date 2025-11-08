@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>论坛</title>
+    <title>论坛 - 支持图片上传</title>
     <style>
         * {
             margin: 0;
@@ -338,272 +338,69 @@
             border: 1px solid rgba(244, 67, 54, 0.5);
         }
         
-        /* 通知系统样式 */
-        .notification-container {
-            position: relative;
-            display: inline-block;
-            margin-right: 15px;
+        /* 图片上传样式 */
+        .image-upload-container {
+            margin-bottom: 15px;
         }
         
-        .notification-bell {
-            font-size: 1.5rem;
-            cursor: pointer;
-            position: relative;
-            padding: 5px;
-            border-radius: 50%;
-            transition: background-color 0.3s;
-        }
-        
-        .notification-bell:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background-color: #ff4757;
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .notification-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            width: 350px;
-            background: rgba(0, 0, 0, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-            z-index: 1001;
-            display: none;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .notification-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .notification-header h3 {
-            margin: 0;
-            color: #ffcc00;
-        }
-        
-        .notification-header button {
-            background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        
-        .notification-header button:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .notification-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .notification-item {
-            padding: 12px 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .notification-item:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-        
-        .notification-item.unread {
-            background-color: rgba(255, 204, 0, 0.1);
-            border-left: 3px solid #ffcc00;
-        }
-        
-        .notification-item.read {
-            opacity: 0.7;
-        }
-        
-        .notification-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #ffcc00;
-        }
-        
-        .notification-content {
-            font-size: 0.9rem;
-            line-height: 1.4;
-        }
-        
-        .notification-time {
-            font-size: 0.8rem;
-            opacity: 0.7;
-            margin-top: 5px;
-        }
-        
-        .notification-empty {
-            padding: 20px;
-            text-align: center;
-            opacity: 0.7;
-        }
-        
-        /* 弹窗样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1002;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-content {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 25px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            color: #ffcc00;
-        }
-        
-        .close-modal {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #ffcc00;
-        }
-        
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            font-size: 1rem;
-            resize: vertical;
-        }
-        
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-        
-        .btn-secondary {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        .btn-primary {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 20px;
-            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(156, 39, 176, 0.4);
-        }
-        
-        /* 帖子详情视图 */
-        .post-detail-view {
-            display: none;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 25px;
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        }
-        
-        .post-detail-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .back-to-list {
+        .image-upload-btn {
             padding: 8px 16px;
             border: none;
             border-radius: 20px;
-            background: linear-gradient(45deg, #ff5252, #ff4081);
+            background: linear-gradient(135deg, #2196F3, #1976D2);
             color: white;
             cursor: pointer;
             transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
         
-        .back-to-list:hover {
+        .image-upload-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(255, 82, 82, 0.4);
+            box-shadow: 0 4px 10px rgba(33, 150, 243, 0.4);
         }
         
-        @media (max-width: 768px) {
-            .forum-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .notification-dropdown {
-                width: 300px;
-                right: -50px;
-            }
+        .image-preview {
+            margin-top: 10px;
+            display: none;
         }
-
+        
+        .image-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .remove-image {
+            margin-top: 5px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 15px;
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .remove-image:hover {
+            background: rgba(244, 67, 54, 0.3);
+        }
+        
+        /* 帖子图片样式 */
+        .post-image, .comment-image {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .post-image img, .comment-image img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
         /* 顶部用户信息区域样式 */
         .top-user-info {
             position: fixed;
@@ -629,6 +426,21 @@
         .welcome-text {
             color: #ffcc00;
             font-weight: bold;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
     
@@ -659,8 +471,8 @@
 
     <div class="container">
         <header>
-            <h1>Discussion</h1>
-            <p>by std114514</p>
+            <h1>Discuss Forum v1.3.0</h1>
+            <p>by std114514 - 支持图片上传</p>
             <button class="back-btn" onclick="window.location.href='/'">返回首页</button>
         </header>
         
@@ -673,6 +485,19 @@
                         <h3>发表新帖子</h3>
                         <form class="post-form" id="postForm">
                             <textarea id="postContent" placeholder="分享您的想法..."></textarea>
+                            
+                            <!-- 图片上传区域 -->
+                            <div class="image-upload-container">
+                                <button type="button" class="image-upload-btn" id="postImageUploadBtn">
+                                    📷 上传图片
+                                </button>
+                                <input type="file" id="postImageInput" accept="image/*" style="display: none;">
+                                <div class="image-preview" id="postImagePreview">
+                                    <img id="postImagePreviewImg" src="" alt="图片预览">
+                                    <button type="button" class="remove-image" id="removePostImage">移除图片</button>
+                                </div>
+                            </div>
+                            
                             <button type="submit">发布</button>
                         </form>
                     </div>
@@ -687,7 +512,9 @@
                     <div class="posts-section">
                         <h3>最新帖子</h3>
                         <div id="postsList">
-                            <!-- 帖子将通过JS动态加载 -->
+                            <div class="post">
+                                <div class="post-content">加载中... <span class="loading"></span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -699,7 +526,9 @@
                         <button class="back-to-list" id="backToList">返回列表</button>
                     </div>
                     <div id="postDetailContent">
-                        <!-- 帖子详情内容将通过JS动态加载 -->
+                        <div class="post">
+                            <div class="post-content">加载帖子详情中... <span class="loading"></span></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -749,6 +578,11 @@
         
         // 当前查看的帖子ID
         let currentPostId = null;
+        // 帖子数据缓存
+        let postsCache = [];
+        // 当前上传的图片文件
+        let currentPostImage = null;
+        let currentCommentImage = null;
         
         // 检查URL参数，如果有id参数，则直接显示对应的帖子详情
         function checkUrlParams() {
@@ -756,9 +590,10 @@
             const postId = urlParams.get('id');
             
             if (postId) {
-                showPostDetail(postId);
-                // 更新URL但不刷新页面
-                window.history.replaceState({}, '', `?id=${postId}`);
+                // 延迟执行，确保帖子列表已加载
+                setTimeout(() => {
+                    showPostDetail(postId);
+                }, 100);
             }
         }
         
@@ -812,6 +647,32 @@
             location.reload();
         }
         
+        // 上传图片到Supabase存储
+        async function uploadImage(file, folder) {
+            try {
+                // 生成唯一文件名
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+                const filePath = `${folder}/${fileName}`;
+                
+                const { data, error } = await supabase.storage
+                    .from('forum-images')
+                    .upload(filePath, file);
+                
+                if (error) throw error;
+                
+                // 获取公共URL
+                const { data: { publicUrl } } = supabase.storage
+                    .from('forum-images')
+                    .getPublicUrl(filePath);
+                
+                return publicUrl;
+            } catch (error) {
+                console.error('图片上传失败:', error);
+                throw error;
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             const newPostSection = document.getElementById('newPostSection');
             const loginPrompt = document.getElementById('loginPrompt');
@@ -824,6 +685,13 @@
             const postDetailView = document.getElementById('postDetailView');
             const backToList = document.getElementById('backToList');
             const postDetailContent = document.getElementById('postDetailContent');
+            
+            // 图片上传相关元素
+            const postImageUploadBtn = document.getElementById('postImageUploadBtn');
+            const postImageInput = document.getElementById('postImageInput');
+            const postImagePreview = document.getElementById('postImagePreview');
+            const postImagePreviewImg = document.getElementById('postImagePreviewImg');
+            const removePostImage = document.getElementById('removePostImage');
             
             // 举报相关元素
             const reportModal = document.getElementById('reportModal');
@@ -845,8 +713,6 @@
             
             // 初始化登录状态
             checkAuthStatus();
-            // 检查URL参数
-//          checkUrlParams();
             
             // 绑定顶部登录按钮事件
             topLoginBtn.addEventListener('click', function() {
@@ -856,6 +722,46 @@
                 } else {
                     window.location.href = '/auth/';
                 }
+            });
+            
+            // 图片上传按钮点击事件
+            postImageUploadBtn.addEventListener('click', function() {
+                postImageInput.click();
+            });
+            
+            // 帖子图片选择事件
+            postImageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // 检查文件类型
+                    if (!file.type.startsWith('image/')) {
+                        showMessage('请选择图片文件', 'error');
+                        return;
+                    }
+                    
+                    // 检查文件大小 (限制为5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        showMessage('图片大小不能超过5MB', 'error');
+                        return;
+                    }
+                    
+                    currentPostImage = file;
+                    
+                    // 显示预览
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        postImagePreviewImg.src = e.target.result;
+                        postImagePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // 移除帖子图片
+            removePostImage.addEventListener('click', function() {
+                currentPostImage = null;
+                postImagePreview.style.display = 'none';
+                postImageInput.value = '';
             });
             
             // 加载帖子列表
@@ -874,16 +780,15 @@
                     
                     if (error) throw error;
                     
-                    renderPosts(data || []);
+                    postsCache = data || [];
+                    renderPosts(postsCache);
+                    
+                    // 加载完成后检查URL参数
+                    checkUrlParams();
+                    
                 } catch (error) {
                     console.error('加载帖子失败:', error);
                     postsList.innerHTML = '<div class="post"><div class="post-content">加载帖子失败，请刷新页面重试</div></div>';
-                }
-                // 检查URL参数，如果有id，则显示对应的帖子详情
-                const urlParams = new URLSearchParams(window.location.search);
-                const postId = urlParams.get('id');
-                if (postId) {
-                    showPostDetail(postId);
                 }
             }
             
@@ -916,6 +821,12 @@
                                 ${post.is_announcement ? '<span class="announcement-badge">公告</span>' : ''}
                             </div>
                             <div class="post-content">${post.content}</div>
+                            
+                            ${post.image_url ? `
+                                <div class="post-image">
+                                    <img src="${post.image_url}" alt="帖子图片">
+                                </div>
+                            ` : ''}
                             
                             <!-- 帖子操作区域 -->
                             <div class="post-actions">
@@ -1020,6 +931,10 @@
                 // 更新URL参数
                 window.history.replaceState({}, '', `?id=${postId}`);
                 
+                // 立即切换到详情视图
+                postsListView.style.display = 'none';
+                postDetailView.style.display = 'block';
+                
                 try {
                     // 获取帖子详情
                     const { data: post, error: postError } = await supabase
@@ -1060,6 +975,12 @@
                             </div>
                             <div class="post-content">${post.content}</div>
                             
+                            ${post.image_url ? `
+                                <div class="post-image">
+                                    <img src="${post.image_url}" alt="帖子图片">
+                                </div>
+                            ` : ''}
+                            
                             <!-- 帖子操作区域 -->
                             <div class="post-actions">
                                 <div class="vote-section">
@@ -1098,6 +1019,19 @@
                             <!-- 评论表单 -->
                             <div class="comment-form">
                                 <textarea class="comment-input" id="detailCommentInput" placeholder="写下你的评论..."></textarea>
+                                
+                                <!-- 评论图片上传区域 -->
+                                <div class="image-upload-container">
+                                    <button type="button" class="image-upload-btn" id="commentImageUploadBtn">
+                                        📷 上传图片
+                                    </button>
+                                    <input type="file" id="commentImageInput" accept="image/*" style="display: none;">
+                                    <div class="image-preview" id="commentImagePreview">
+                                        <img id="commentImagePreviewImg" src="" alt="图片预览">
+                                        <button type="button" class="remove-image" id="removeCommentImage">移除图片</button>
+                                    </div>
+                                </div>
+                                
                                 <button class="submit-comment" id="detailSubmitComment" data-post-id="${post.id}">发布评论</button>
                             </div>
                             
@@ -1114,6 +1048,13 @@
                                                     <span class="comment-date">${formatDate(comment.created_at)}</span>
                                                 </div>
                                                 <div class="comment-content">${comment.content}</div>
+                                                
+                                                ${comment.image_url ? `
+                                                    <div class="comment-image">
+                                                        <img src="${comment.image_url}" alt="评论图片">
+                                                    </div>
+                                                ` : ''}
+                                                
                                                 <div class="comment-actions">
                                                     <div class="vote-section">
                                                         <button class="vote-btn like-btn ${commentUserVote && commentUserVote.vote_type === 1 ? 'active' : ''}" 
@@ -1148,12 +1089,9 @@
                     // 绑定详情页的事件
                     bindDetailPageEvents();
                     
-                    // 切换到详情视图
-                    postsListView.style.display = 'none';
-                    postDetailView.style.display = 'block';
-                    
                 } catch (error) {
                     console.error('加载帖子详情失败:', error);
+                    postDetailContent.innerHTML = '<div class="post"><div class="post-content">加载帖子详情失败，请稍后重试</div></div>';
                     showMessage('加载帖子详情失败，请稍后重试', 'error');
                 }
             }
@@ -1210,6 +1148,52 @@
                     });
                 });
                 
+                // 绑定评论图片上传事件
+                const commentImageUploadBtn = document.getElementById('commentImageUploadBtn');
+                const commentImageInput = document.getElementById('commentImageInput');
+                const commentImagePreview = document.getElementById('commentImagePreview');
+                const commentImagePreviewImg = document.getElementById('commentImagePreviewImg');
+                const removeCommentImage = document.getElementById('removeCommentImage');
+                
+                if (commentImageUploadBtn) {
+                    commentImageUploadBtn.addEventListener('click', function() {
+                        commentImageInput.click();
+                    });
+                    
+                    commentImageInput.addEventListener('change', function(e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            // 检查文件类型
+                            if (!file.type.startsWith('image/')) {
+                                showMessage('请选择图片文件', 'error');
+                                return;
+                            }
+                            
+                            // 检查文件大小 (限制为5MB)
+                            if (file.size > 5 * 1024 * 1024) {
+                                showMessage('图片大小不能超过5MB', 'error');
+                                return;
+                            }
+                            
+                            currentCommentImage = file;
+                            
+                            // 显示预览
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                commentImagePreviewImg.src = e.target.result;
+                                commentImagePreview.style.display = 'block';
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                    
+                    removeCommentImage.addEventListener('click', function() {
+                        currentCommentImage = null;
+                        commentImagePreview.style.display = 'none';
+                        commentImageInput.value = '';
+                    });
+                }
+                
                 // 绑定评论提交事件
                 const detailSubmitComment = document.getElementById('detailSubmitComment');
                 const detailCommentInput = document.getElementById('detailCommentInput');
@@ -1217,8 +1201,8 @@
                 if (detailSubmitComment) {
                     detailSubmitComment.addEventListener('click', function() {
                         const content = detailCommentInput.value.trim();
-                        if (!content) {
-                            showMessage('请输入评论内容', 'error');
+                        if (!content && !currentCommentImage) {
+                            showMessage('请输入评论内容或上传图片', 'error');
                             return;
                         }
                         
@@ -1248,8 +1232,9 @@
                 }
                 
                 const content = document.getElementById('postContent').value.trim();
-                if (!content) {
-                    showMessage('请输入帖子内容', 'error');
+                
+                if (!content && !currentPostImage) {
+                    showMessage('请输入帖子内容或上传图片', 'error');
                     return;
                 }
                 
@@ -1259,12 +1244,19 @@
                 }
                 
                 try {
+                    let imageUrl = null;
+                    if (currentPostImage) {
+                        showMessage('正在上传图片...', 'success');
+                        imageUrl = await uploadImage(currentPostImage, 'posts');
+                    }
+                    
                     const { error } = await supabase
                         .from('posts')
                         .insert([
                             {
                                 user_id: user.id,
-                                content: content
+                                content: content,
+                                image_url: imageUrl
                             }
                         ]);
                     
@@ -1272,6 +1264,11 @@
                     
                     showMessage('帖子发布成功', 'success');
                     document.getElementById('postContent').value = '';
+                    // 重置图片上传
+                    currentPostImage = null;
+                    postImagePreview.style.display = 'none';
+                    postImageInput.value = '';
+                    
                     loadPosts();
                     
                 } catch (error) {
@@ -1289,13 +1286,20 @@
                 }
                 
                 try {
+                    let imageUrl = null;
+                    if (currentCommentImage) {
+                        showMessage('正在上传图片...', 'success');
+                        imageUrl = await uploadImage(currentCommentImage, 'comments');
+                    }
+                    
                     const { error } = await supabase
                         .from('comments')
                         .insert([
                             {
                                 user_id: user.id,
                                 post_id: postId,
-                                content: content
+                                content: content,
+                                image_url: imageUrl
                             }
                         ]);
                     
@@ -1303,6 +1307,13 @@
                     
                     showMessage('评论发布成功', 'success');
                     document.getElementById('detailCommentInput').value = '';
+                    // 重置图片上传
+                    currentCommentImage = null;
+                    const commentImagePreview = document.getElementById('commentImagePreview');
+                    if (commentImagePreview) {
+                        commentImagePreview.style.display = 'none';
+                    document.getElementById('commentImageInput').value = '';
+                    }
                     
                     // 刷新帖子详情
                     showPostDetail(postId);
@@ -1622,11 +1633,23 @@
                     // 获取帖子作者信息
                     const { data: post, error: postError } = await supabase
                         .from('posts')
-                        .select('user_id, content')
+                        .select('user_id, content, image_url')
                         .eq('id', postId)
                         .single();
                     
                     if (postError) throw postError;
+                    
+                    // 如果帖子有图片，从存储中删除
+                    if (post.image_url) {
+                        const fileName = post.image_url.split('/').pop();
+                        const { error: deleteImageError } = await supabase.storage
+                            .from('forum-images')
+                            .remove([`posts/${fileName}`]);
+                        
+                        if (deleteImageError) {
+                            console.error('删除帖子图片失败:', deleteImageError);
+                        }
+                    }
                     
                     // 删除帖子
                     const { error: deleteError } = await supabase
@@ -1683,11 +1706,23 @@
                     // 获取评论信息
                     const { data: comment, error: commentError } = await supabase
                         .from('comments')
-                        .select('user_id, content, post_id')
+                        .select('user_id, content, image_url, post_id')
                         .eq('id', commentId)
                         .single();
                     
                     if (commentError) throw commentError;
+                    
+                    // 如果评论有图片，从存储中删除
+                    if (comment.image_url) {
+                        const fileName = comment.image_url.split('/').pop();
+                        const { error: deleteImageError } = await supabase.storage
+                            .from('forum-images')
+                            .remove([`comments/${fileName}`]);
+                        
+                        if (deleteImageError) {
+                            console.error('删除评论图片失败:', deleteImageError);
+                        }
+                    }
                     
                     // 删除评论
                     const { error: deleteError } = await supabase
