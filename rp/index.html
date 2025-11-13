@@ -606,14 +606,12 @@
                     });
                     totalUsers.textContent = uniqueUsers.size;
                     
-                    // 获取今日抽奖次数
+                    // 获取今日所有用户的抽奖总次数
                     const today = new Date().toISOString().split('T')[0];
-                    const ip = await getClientIP();
                     
                     const { data: spinsData, error: spinsError } = await supabase
                         .from('spins')
                         .select('*')
-                        .eq('ip', ip)
                         .eq('date', today);
                     
                     if (spinsError) throw spinsError;
@@ -747,8 +745,8 @@
                     
                     if (error) throw error;
                     
-                    todaySpinsCount++;
-                    todaySpins.textContent = todaySpinsCount;
+                    // 重新获取统计数据，更新今日抽奖总次数
+                    await fetchStats();
                 } catch (error) {
                     console.error('记录抽奖次数失败:', error);
                 }
