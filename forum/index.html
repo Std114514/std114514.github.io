@@ -946,7 +946,7 @@
 
 // 显示举报弹窗
             function showReportModal(targetId, targetType) {
-                const user = checkAuthStatus();
+                const user = await checkAuthStatus();
                 if (!user) {
                     showMessage('请先登录', 'error');
                     return;
@@ -1155,7 +1155,7 @@
             
             // 删除评论（管理员功能）
             async function deleteComment(commentId) {
-                const user = checkAuthStatus();
+                const user = await checkAuthStatus();
                 if (!user || !user.is_admin) {
                     showMessage('没有权限执行此操作', 'error');
                     return;
@@ -2040,7 +2040,7 @@
             
             // 标记所有通知为已读
             async function markAllNotificationsAsRead() {
-                const user = checkAuthStatus();
+                const user = await checkAuthStatus();
                 if (!user) return;
                 
                 try {
