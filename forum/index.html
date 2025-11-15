@@ -1145,6 +1145,126 @@
             }
             return tags;
         }
+
+        // 修改 loadNotifications 函数，添加更严格的错误处理
+            async function loadNotifications() {
+                const user = await checkAuthStatus(); // 等待异步函数完成
+                if (!user || !user.id) {
+                    console.log('用户未登录或用户ID不存在，跳过加载通知');
+                    return;
+                }
+                
+                try {
+                    const { data, error } = await supabase
+                        .from('notifications')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+                    
+                    if (error) throw error;
+                    
+                    renderNotifications(data || []);
+                    updateNotificationBadge(data || []);
+                } catch (error) {
+                    console.error('加载通知失败:', error);
+                    // 不显示错误消息给用户，避免干扰
+                }
+            }
+            
+            // 渲染通知
+            function renderNotifications(notifications) {
+                if (!notifications || notifications.length === 0) {
+                    notificationList.innerHTML = '<div class="notification-empty">暂无通知</div>';
+                    return;
+                }
+                
+                notificationList.innerHTML = notifications.map(notification => `
+                    <div class="notification-item ${notification.is_read ? 'read' : 'unread'}" 
+                         data-notification-id="${notification.id}">
+                        <div class="notification-title">${notification.title}</div>
+                        <div class="notification-content">${notification.content}</div>
+                        <div class="notification-time">${formatTimeAgo(notification.created_at)}</div>
+                    </div>
+                `).join('');
+                
+                // 添加点击事件
+                document.querySelectorAll('.notification-item').forEach(item => {
+                    item.addEventListener('click', async function() {
+                        const notificationId = this.dataset.notificationId;
+                        await markNotificationAsRead(notificationId);
+                        this.classList.remove('unread');
+                        this.classList.add('read');
+                        loadNotifications(); // 刷新通知列表
+                    });
+                });
+            }
+            
+            // 更新通知徽章
+            function updateNotificationBadge(notifications) {
+                const unreadCount = notifications.filter(n => !n.is_read).length;
+                
+                if (unreadCount > 0) {
+                    notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                    notificationBadge.style.display = 'flex';
+                } else {
+                    notificationBadge.style.display = 'none';
+                }
+            }
+            
+            // 标记通知为已读
+            async function markNotificationAsRead(notificationId) {
+                try {
+                    const { error } = await supabase
+                        .from('notifications')
+                        .update({ is_read: true })
+                        .eq('id', notificationId);
+                    
+                    if (error) throw error;
+                } catch (error) {
+                    console.error('标记通知已读失败:', error);
+                }
+            }
+            
+            // 标记所有通知为已读
+            async function markAllNotificationsAsRead() {
+                const user = checkAuthStatus();
+                if (!user) return;
+                
+                try {
+                    const { error } = await supabase
+                        .from('notifications')
+                        .update({ is_read: true })
+                        .eq('user_id', user.id)
+                        .eq('is_read', false);
+                    
+                    if (error) throw error;
+                    
+                    loadNotifications(); // 刷新通知列表
+                } catch (error) {
+                    console.error('标记所有通知已读失败:', error);
+                }
+            }
+            
+            // 创建通知
+            async function createNotification(userId, type, title, content, relatedId = null) {
+                try {
+                    const { error } = await supabase
+                        .from('notifications')
+                        .insert([{
+                            user_id: userId,
+                            type: type,
+                            title: title,
+                            content: content,
+                            related_id: relatedId
+                        }]);
+                    
+                    if (error) throw error;
+                    
+                } catch (error) {
+                    console.error('创建通知失败:', error);
+                }
+            }
         
         // 处理@提及功能
         function processMentions(text, postId, commentId = null, mentionedBy) {
@@ -1391,126 +1511,6 @@
                 postImagePreview.style.display = 'none';
                 postImageInput.value = '';
             });
-
-            // 修改 loadNotifications 函数，添加更严格的错误处理
-            async function loadNotifications() {
-                const user = await checkAuthStatus(); // 等待异步函数完成
-                if (!user || !user.id) {
-                    console.log('用户未登录或用户ID不存在，跳过加载通知');
-                    return;
-                }
-                
-                try {
-                    const { data, error } = await supabase
-                        .from('notifications')
-                        .select('*')
-                        .eq('user_id', user.id)
-                        .order('created_at', { ascending: false })
-                        .limit(20);
-                    
-                    if (error) throw error;
-                    
-                    renderNotifications(data || []);
-                    updateNotificationBadge(data || []);
-                } catch (error) {
-                    console.error('加载通知失败:', error);
-                    // 不显示错误消息给用户，避免干扰
-                }
-            }
-            
-            // 渲染通知
-            function renderNotifications(notifications) {
-                if (!notifications || notifications.length === 0) {
-                    notificationList.innerHTML = '<div class="notification-empty">暂无通知</div>';
-                    return;
-                }
-                
-                notificationList.innerHTML = notifications.map(notification => `
-                    <div class="notification-item ${notification.is_read ? 'read' : 'unread'}" 
-                         data-notification-id="${notification.id}">
-                        <div class="notification-title">${notification.title}</div>
-                        <div class="notification-content">${notification.content}</div>
-                        <div class="notification-time">${formatTimeAgo(notification.created_at)}</div>
-                    </div>
-                `).join('');
-                
-                // 添加点击事件
-                document.querySelectorAll('.notification-item').forEach(item => {
-                    item.addEventListener('click', async function() {
-                        const notificationId = this.dataset.notificationId;
-                        await markNotificationAsRead(notificationId);
-                        this.classList.remove('unread');
-                        this.classList.add('read');
-                        loadNotifications(); // 刷新通知列表
-                    });
-                });
-            }
-            
-            // 更新通知徽章
-            function updateNotificationBadge(notifications) {
-                const unreadCount = notifications.filter(n => !n.is_read).length;
-                
-                if (unreadCount > 0) {
-                    notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-                    notificationBadge.style.display = 'flex';
-                } else {
-                    notificationBadge.style.display = 'none';
-                }
-            }
-            
-            // 标记通知为已读
-            async function markNotificationAsRead(notificationId) {
-                try {
-                    const { error } = await supabase
-                        .from('notifications')
-                        .update({ is_read: true })
-                        .eq('id', notificationId);
-                    
-                    if (error) throw error;
-                } catch (error) {
-                    console.error('标记通知已读失败:', error);
-                }
-            }
-            
-            // 标记所有通知为已读
-            async function markAllNotificationsAsRead() {
-                const user = checkAuthStatus();
-                if (!user) return;
-                
-                try {
-                    const { error } = await supabase
-                        .from('notifications')
-                        .update({ is_read: true })
-                        .eq('user_id', user.id)
-                        .eq('is_read', false);
-                    
-                    if (error) throw error;
-                    
-                    loadNotifications(); // 刷新通知列表
-                } catch (error) {
-                    console.error('标记所有通知已读失败:', error);
-                }
-            }
-            
-            // 创建通知
-            async function createNotification(userId, type, title, content, relatedId = null) {
-                try {
-                    const { error } = await supabase
-                        .from('notifications')
-                        .insert([{
-                            user_id: userId,
-                            type: type,
-                            title: title,
-                            content: content,
-                            related_id: relatedId
-                        }]);
-                    
-                    if (error) throw error;
-                    
-                } catch (error) {
-                    console.error('创建通知失败:', error);
-                }
-            }
             
             // 修改 loadPosts 函数，确保正确调用 renderPosts
             async function loadPosts(page = 1) {
