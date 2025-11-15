@@ -589,6 +589,7 @@
                         id: data.id,
                         username: data.username,
                         email: data.email
+                        is_admin: data.is_admin
                     }));
                     
                     showMessage('登录成功！正在跳转...', 'success');
@@ -691,6 +692,7 @@
                                 ip_address: ipAddress,
                                 created_at: new Date().toISOString(),
                                 last_login: new Date().toISOString()
+                                is_admin: false
                             }
                         ])
                         .select()
@@ -705,6 +707,7 @@
                         id: data.id,
                         username: data.username,
                         email: data.email
+                        is_admin: data.is_admin
                     }));
                     
                     // 跳转回首页
