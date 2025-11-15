@@ -1173,18 +1173,10 @@
             }
         }
         
-        // 修改 checkAuthStatus 函数，彻底修复权限问题
+        // 修改 checkAuthStatus 函数，确保返回的用户对象包含正确的 ID
         async function checkAuthStatus() {
             try {
                 const userData = localStorage.getItem('userData');
-                const userStatus = document.getElementById('userStatus');
-                const topLoginBtn = document.getElementById('topLoginBtn');
-                const userWelcome = document.getElementById('userWelcome');
-                const userActions = document.getElementById('userActions');
-                const newPostSection = document.getElementById('newPostSection');
-                const loginPrompt = document.getElementById('loginPrompt');
-                const userManagementSection = document.getElementById('userManagementSection');
-                const postsSection = document.querySelector('.posts-section');
                 
                 if (userData) {
                     const user = JSON.parse(userData);
@@ -1193,7 +1185,6 @@
                     if (!user || !user.id || !user.username) {
                         console.error('用户数据不完整:', user);
                         localStorage.removeItem('userData');
-                        // 显示未登录状态
                         setLoggedOutState();
                         return null;
                     }
@@ -1208,25 +1199,31 @@
                         
                         if (error) {
                             console.error('获取用户信息失败:', error);
-                            // 使用本地存储的用户信息，但标记为需要重新验证
-                            user.needsRefresh = true;
-                            localStorage.setItem('userData', JSON.stringify(user));
-                        } else if (userInfo) {
-                            // 更新用户信息
-                            user.is_admin = userInfo.is_admin;
-                            user.username = userInfo.username;
-                            user.needsRefresh = false;
-                            localStorage.setItem('userData', JSON.stringify(user));
+                            // 使用本地存储的用户信息
+                            if (user.username === 'std114514') {
+                                user.is_admin = true;
+                            }
+                            setLoggedInState(user);
+                            return user;
                         }
                         
-                        // 强制站长 std114514 拥有管理员权限
-                        if (user.username === 'std114514') {
-                            user.is_admin = true;
+                        if (userInfo) {
+                            // 更新用户信息，确保 ID 正确
+                            const updatedUser = {
+                                id: userInfo.id, // 确保使用服务器返回的 ID
+                                username: userInfo.username,
+                                is_admin: userInfo.is_admin
+                            };
+                            
+                            // 强制站长 std114514 拥有管理员权限
+                            if (updatedUser.username === 'std114514') {
+                                updatedUser.is_admin = true;
+                            }
+                            
+                            localStorage.setItem('userData', JSON.stringify(updatedUser));
+                            setLoggedInState(updatedUser);
+                            return updatedUser;
                         }
-                        
-                        // 设置登录状态
-                        setLoggedInState(user);
-                        return user;
                         
                     } catch (error) {
                         console.error('验证用户信息失败:', error);
@@ -1245,66 +1242,6 @@
                 console.error('检查认证状态失败:', error);
                 setLoggedOutState();
                 return null;
-            }
-            
-            // 设置登录状态的辅助函数
-            function setLoggedInState(user) {
-                const userStatus = document.getElementById('userStatus');
-                const topLoginBtn = document.getElementById('topLoginBtn');
-                const userWelcome = document.getElementById('userWelcome');
-                const userActions = document.getElementById('userActions');
-                const newPostSection = document.getElementById('newPostSection');
-                const loginPrompt = document.getElementById('loginPrompt');
-                const userManagementSection = document.getElementById('userManagementSection');
-                const postsSection = document.querySelector('.posts-section');
-                
-                userStatus.innerHTML = `<span class="welcome-text">${user.username}</span>`;
-                topLoginBtn.textContent = '退出登录';
-                userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
-                userActions.innerHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
-                newPostSection.style.display = 'block';
-                loginPrompt.style.display = 'none';
-                postsSection.style.display = 'block';
-                
-                // 显示用户管理区域（仅站长）
-                if (user.username === 'std114514') {
-                    userManagementSection.style.display = 'block';
-                } else {
-                    userManagementSection.style.display = 'none';
-                }
-            }
-            
-            // 设置未登录状态的辅助函数
-            function setLoggedOutState() {
-                const userStatus = document.getElementById('userStatus');
-                const topLoginBtn = document.getElementById('topLoginBtn');
-                const userWelcome = document.getElementById('userWelcome');
-                const userActions = document.getElementById('userActions');
-                const newPostSection = document.getElementById('newPostSection');
-                const loginPrompt = document.getElementById('loginPrompt');
-                const userManagementSection = document.getElementById('userManagementSection');
-                const postsSection = document.querySelector('.posts-section');
-                const postsList = document.getElementById('postsList');
-                const postDetailView = document.getElementById('postDetailView');
-                const postsListView = document.getElementById('postsListView');
-                
-                userStatus.textContent = '未登录';
-                topLoginBtn.textContent = '登录/注册';
-                userWelcome.textContent = '请先登录';
-                userActions.innerHTML = `<button class="login-btn" onclick="window.location.href='/auth/'">登录/注册</button>`;
-                newPostSection.style.display = 'none';
-                loginPrompt.style.display = 'block';
-                userManagementSection.style.display = 'none';
-                
-                // 隐藏帖子内容
-                postsSection.style.display = 'none';
-                postsList.innerHTML = '';
-                
-                // 确保在帖子详情视图时返回到列表视图
-                if (postDetailView.style.display !== 'none') {
-                    postDetailView.style.display = 'none';
-                    postsListView.style.display = 'block';
-                }
             }
         }
         
@@ -2085,19 +2022,18 @@
                 loadPosts(currentPage); // 刷新帖子列表
             });
             
-            // 发布帖子
+            // 同样修改发布帖子的函数
             async function submitPost(e) {
                 e.preventDefault();
-    
-                // 直接获取用户数据，避免异步问题
-                const userData = localStorage.getItem('userData');
-                if (!userData) {
+            
+                // 使用 await 确保获取到最新的用户状态
+                const user = await checkAuthStatus();
+                if (!user) {
                     showMessage('请先登录', 'error');
                     return;
                 }
                 
-                const user = JSON.parse(userData);
-                if (!user || !user.id) {
+                if (!user.id) {
                     showMessage('用户信息无效，请重新登录', 'error');
                     return;
                 }
@@ -2133,7 +2069,7 @@
                         .from('posts')
                         .insert([
                             {
-                                user_id: user.id,
+                                user_id: user.id, // 确保这里传递的是正确的用户ID
                                 title: title,
                                 content: content,
                                 image_url: imageUrl,
@@ -2170,17 +2106,16 @@
                 }
             }
             
-            // 提交评论
+            // 修改提交评论函数，确保正确获取用户ID
             async function submitComment(postId, content) {
-                // 直接获取用户数据，避免异步问题
-                const userData = localStorage.getItem('userData');
-                if (!userData) {
+                // 使用 await 确保获取到最新的用户状态
+                const user = await checkAuthStatus();
+                if (!user) {
                     showMessage('请先登录', 'error');
                     return;
                 }
                 
-                const user = JSON.parse(userData);
-                if (!user || !user.id) {
+                if (!user.id) {
                     showMessage('用户信息无效，请重新登录', 'error');
                     return;
                 }
@@ -2198,7 +2133,7 @@
                         .from('comments')
                         .insert([
                             {
-                                user_id: user.id,
+                                user_id: user.id, // 确保这里传递的是正确的用户ID
                                 post_id: postId,
                                 content: content,
                                 image_url: imageUrl,
