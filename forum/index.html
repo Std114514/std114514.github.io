@@ -1317,7 +1317,7 @@
                 postImageInput.value = '';
             });
             
-            // 加载帖子列表
+            // 修改 loadPosts 函数，确保正确调用 renderPosts
             async function loadPosts(page = 1) {
                 try {
                     currentPage = page;
@@ -1349,7 +1349,8 @@
                     
                     if (error) throw error;
                     
-                    renderPosts(data || []);
+                    // 等待渲染完成
+                    await renderPosts(data || []);
                     updatePaginationControls(totalPages, page);
                     
                 } catch (error) {
@@ -1398,9 +1399,10 @@
                 }
             }
             
-            // 渲染帖子列表
-            function renderPosts(posts) {
-                const user = checkAuthStatus();
+            // 修改 renderPosts 函数，确保正确获取用户信息
+            async function renderPosts(posts) {
+                // 等待异步获取用户信息
+                const user = await checkAuthStatus();
                 
                 if (!posts || posts.length === 0) {
                     postsList.innerHTML = '<div class="post"><div class="post-content">暂无帖子，快来发表第一个帖子吧！</div></div>';
@@ -1529,7 +1531,7 @@
                 });
             }
             
-            // 显示帖子详情
+            // 修改 showPostDetail 函数中的用户获取部分
             async function showPostDetail(postId) {
                 currentPostId = postId;
                 
@@ -1563,7 +1565,8 @@
                     
                     if (commentsError) throw commentsError;
                     
-                    const user = checkAuthStatus();
+                    // 等待异步获取用户信息
+                    const user = await checkAuthStatus();
                     const userVote = user ? post.post_votes?.find(vote => vote.user_id === user.id) : null;
                     
                     // 渲染帖子详情
@@ -1703,6 +1706,7 @@
                     showMessage('加载帖子详情失败，请稍后重试', 'error');
                 }
             }
+
             
             // 绑定详情页的事件
             function bindDetailPageEvents() {
