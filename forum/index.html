@@ -1928,7 +1928,7 @@
             });
             
             // 发布帖子
-            postForm.addEventListener('submitPost', async function(e) {
+            async function submitPost(e) {
                 e.preventDefault();
     
                 // 直接获取用户数据，避免异步问题
