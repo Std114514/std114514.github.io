@@ -588,7 +588,7 @@
                     localStorage.setItem('userData', JSON.stringify({
                         id: data.id,
                         username: data.username,
-                        email: data.email
+                        email: data.email,
                         is_admin: data.is_admin
                     }));
                     
@@ -691,7 +691,7 @@
                                 password_hash: passwordHash,
                                 ip_address: ipAddress,
                                 created_at: new Date().toISOString(),
-                                last_login: new Date().toISOString()
+                                last_login: new Date().toISOString(),
                                 is_admin: false
                             }
                         ])
@@ -706,7 +706,7 @@
                     localStorage.setItem('userData', JSON.stringify({
                         id: data.id,
                         username: data.username,
-                        email: data.email
+                        email: data.email,
                         is_admin: data.is_admin
                     }));
                     
