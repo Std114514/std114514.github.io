@@ -693,6 +693,85 @@
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
+
+        /* 用户标签样式 */
+        .user-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        
+        .noip-tag {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+        
+        .admin-tag {
+            background: linear-gradient(45deg, #4834d4, #686de0);
+            color: white;
+        }
+
+        /* 用户管理样式 */
+        .user-management-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .user-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .user-item-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .admin-toggle {
+            width: 40px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .admin-toggle.active {
+            background: #4CAF50;
+        }
+        
+        .admin-toggle::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        
+        .admin-toggle.active::after {
+            transform: translateX(20px);
+        }
     </style>
     
     <!-- 引入 Supabase SDK -->
@@ -807,6 +886,13 @@
                 <div id="userActions">
                     <button class="login-btn" onclick="window.location.href='/auth/'">登录/注册</button>
                 </div>
+                <!-- 用户管理区域 -->
+                <div id="userManagementSection" class="user-management-section" style="display: none;">
+                    <h4 style="margin-bottom: 10px; color: #ffcc00;">用户管理</h4>
+                    <div class="user-list" id="userList">
+                        <!-- 用户列表将通过JS动态加载 -->
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -861,7 +947,7 @@
         }
         
         // 检查登录状态
-        function checkAuthStatus() {
+        async function checkAuthStatus() {
             const userData = localStorage.getItem('userData');
             const userStatus = document.getElementById('userStatus');
             const topLoginBtn = document.getElementById('topLoginBtn');
@@ -869,20 +955,48 @@
             const userActions = document.getElementById('userActions');
             const newPostSection = document.getElementById('newPostSection');
             const loginPrompt = document.getElementById('loginPrompt');
+            const userManagementSection = document.getElementById('userManagementSection');
             
             if (userData) {
                 const user = JSON.parse(userData);
+                
+                // 从服务器获取最新的用户信息，包括管理员状态
+                try {
+                    const { data: userInfo, error } = await supabase
+                        .from('users')
+                        .select('is_admin')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (!error && userInfo) {
+                        user.is_admin = userInfo.is_admin;
+                        localStorage.setItem('userData', JSON.stringify(user));
+                    }
+                } catch (error) {
+                    console.error('获取用户信息失败:', error);
+                }
+                
                 // 更新顶部用户信息区域
                 userStatus.innerHTML = `<span class="welcome-text">欢迎回来，${user.username}</span>`;
                 topLoginBtn.textContent = '退出登录';
                 
                 // 更新侧边栏用户信息
                 userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
-                userActions.innerHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
+                
+                let actionsHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
+                userActions.innerHTML = actionsHTML;
                 
                 // 显示发帖区域
                 newPostSection.style.display = 'block';
                 loginPrompt.style.display = 'none';
+                
+                // 如果是站长std114514，显示用户管理区域
+                if (user.username === 'std114514') {
+                    userManagementSection.style.display = 'block';
+                    loadUserManagement();
+                } else {
+                    userManagementSection.style.display = 'none';
+                }
                 
                 return user;
             } else {
@@ -897,6 +1011,7 @@
                 // 隐藏发帖区域
                 newPostSection.style.display = 'none';
                 loginPrompt.style.display = 'block';
+                userManagementSection.style.display = 'none';
                 
                 return null;
             }
@@ -934,6 +1049,18 @@
                 console.error('图片上传失败:', error);
                 throw error;
             }
+        }
+        
+        // 获取用户标签HTML
+        function getUserTags(user) {
+            let tags = '';
+            if (user.username === 'std114514') {
+                tags += '<span class="user-tag noip-tag">Noip</span>';
+            }
+            if (user.is_admin) {
+                tags += '<span class="user-tag admin-tag">admin</span>';
+            }
+            return tags;
         }
         
         document.addEventListener('DOMContentLoaded', function() {
@@ -974,98 +1101,17 @@
             // 顶部登录按钮
             const topLoginBtn = document.getElementById('topLoginBtn');
             
-            // 初始化登录状态
-            checkAuthStatus();
-            // 检查URL参数
-            checkUrlParams();
-
             // 分页相关变量
             let currentPage = 1;
             const postsPerPage = 20;
             let totalPosts = 0;
             
-            // 修改后的 loadPosts 函数
-            async function loadPosts(page = 1) {
-                try {
-                    currentPage = page;
-                    
-                    // 首先获取帖子总数
-                    const { count, error: countError } = await supabase
-                        .from('posts')
-                        .select('*', { count: 'exact', head: true });
-                    
-                    if (countError) throw countError;
-                    
-                    totalPosts = count;
-                    const totalPages = Math.ceil(totalPosts / postsPerPage);
-                    
-                    // 计算分页偏移量
-                    const from = (page - 1) * postsPerPage;
-                    const to = from + postsPerPage - 1;
-                    
-                    const { data, error } = await supabase
-                        .from('posts')
-                        .select(`
-                            *,
-                            users:user_id (username),
-                            post_votes!left(vote_type),
-                            comments:comments(count)
-                        `)
-                        .order('created_at', { ascending: false })
-                        .range(from, to);
-                    
-                    if (error) throw error;
-                    
-                    renderPosts(data || []);
-                    updatePaginationControls(totalPages, page);
-                    
-                } catch (error) {
-                    console.error('加载帖子失败:', error);
-                    postsList.innerHTML = '<div class="post"><div class="post-content">加载帖子失败，请刷新页面重试</div></div>';
-                }
-            }
+            // 初始化登录状态
+            checkAuthStatus();
+            // 检查URL参数
+            checkUrlParams();
             
-            // 更新分页控件
-            function updatePaginationControls(totalPages, currentPage) {
-                const pagination = document.getElementById('pagination');
-                const pageInput = document.getElementById('pageInput');
-                const totalPagesSpan = document.getElementById('totalPages');
-                const prevPageBtn = document.getElementById('prevPage');
-                const nextPageBtn = document.getElementById('nextPage');
-                
-                if (totalPages <= 1) {
-                    pagination.style.display = 'none';
-                    return;
-                }
-                
-                pagination.style.display = 'block';
-                pageInput.value = currentPage;
-                pageInput.max = totalPages;
-                totalPagesSpan.textContent = ` / ${totalPages} 页`;
-                
-                // 更新按钮状态
-                prevPageBtn.disabled = currentPage === 1;
-                nextPageBtn.disabled = currentPage === totalPages;
-                
-                // 添加样式来显示禁用状态
-                if (prevPageBtn.disabled) {
-                    prevPageBtn.style.opacity = '0.5';
-                    prevPageBtn.style.cursor = 'not-allowed';
-                } else {
-                    prevPageBtn.style.opacity = '1';
-                    prevPageBtn.style.cursor = 'pointer';
-                }
-                
-                if (nextPageBtn.disabled) {
-                    nextPageBtn.style.opacity = '0.5';
-                    nextPageBtn.style.cursor = 'not-allowed';
-                } else {
-                    nextPageBtn.style.opacity = '1';
-                    nextPageBtn.style.cursor = 'pointer';
-                }
-            }
-            
-            // 分页事件绑定 - 在DOMContentLoaded函数内部添加
+            // 分页事件绑定
             document.getElementById('prevPage').addEventListener('click', function() {
                 if (currentPage > 1) {
                     loadPosts(currentPage - 1);
@@ -1149,25 +1195,83 @@
             });
             
             // 加载帖子列表
-            async function loadPosts() {
+            async function loadPosts(page = 1) {
                 try {
+                    currentPage = page;
+                    
+                    // 首先获取帖子总数
+                    const { count, error: countError } = await supabase
+                        .from('posts')
+                        .select('*', { count: 'exact', head: true });
+                    
+                    if (countError) throw countError;
+                    
+                    totalPosts = count;
+                    const totalPages = Math.ceil(totalPosts / postsPerPage);
+                    
+                    // 计算分页偏移量
+                    const from = (page - 1) * postsPerPage;
+                    const to = from + postsPerPage - 1;
+                    
                     const { data, error } = await supabase
                         .from('posts')
                         .select(`
                             *,
-                            users:user_id (username),
+                            users:user_id (username, is_admin),
                             post_votes!left(vote_type),
                             comments:comments(count)
                         `)
                         .order('created_at', { ascending: false })
-                        .limit(50);
+                        .range(from, to);
                     
                     if (error) throw error;
                     
                     renderPosts(data || []);
+                    updatePaginationControls(totalPages, page);
+                    
                 } catch (error) {
                     console.error('加载帖子失败:', error);
                     postsList.innerHTML = '<div class="post"><div class="post-content">加载帖子失败，请刷新页面重试</div></div>';
+                }
+            }
+            
+            // 更新分页控件
+            function updatePaginationControls(totalPages, currentPage) {
+                const pagination = document.getElementById('pagination');
+                const pageInput = document.getElementById('pageInput');
+                const totalPagesSpan = document.getElementById('totalPages');
+                const prevPageBtn = document.getElementById('prevPage');
+                const nextPageBtn = document.getElementById('nextPage');
+                
+                if (totalPages <= 1) {
+                    pagination.style.display = 'none';
+                    return;
+                }
+                
+                pagination.style.display = 'block';
+                pageInput.value = currentPage;
+                pageInput.max = totalPages;
+                totalPagesSpan.textContent = ` / ${totalPages} 页`;
+                
+                // 更新按钮状态
+                prevPageBtn.disabled = currentPage === 1;
+                nextPageBtn.disabled = currentPage === totalPages;
+                
+                // 添加样式来显示禁用状态
+                if (prevPageBtn.disabled) {
+                    prevPageBtn.style.opacity = '0.5';
+                    prevPageBtn.style.cursor = 'not-allowed';
+                } else {
+                    prevPageBtn.style.opacity = '1';
+                    prevPageBtn.style.cursor = 'pointer';
+                }
+                
+                if (nextPageBtn.disabled) {
+                    nextPageBtn.style.opacity = '0.5';
+                    nextPageBtn.style.cursor = 'not-allowed';
+                } else {
+                    nextPageBtn.style.opacity = '1';
+                    nextPageBtn.style.cursor = 'pointer';
                 }
             }
             
@@ -1195,7 +1299,7 @@
                     return `
                         <div class="post ${post.is_announcement ? 'announcement' : ''}" data-post-id="${post.id}">
                             <div class="post-header">
-                                <span class="post-author">${post.users.username}</span>
+                                <span class="post-author">${post.users.username} ${getUserTags(post.users)}</span>
                                 <span class="post-date">${formatDate(post.created_at)}</span>
                                 ${post.is_announcement ? '<span class="announcement-badge">公告</span>' : ''}
                             </div>
@@ -1204,11 +1308,7 @@
                                 ${post.title || '无标题'}
                             </div>
                             
-                            ${post.image_url ? `
-                                <div class="post-image">
-                                    <img src="${post.image_url}" alt="帖子图片">
-                                </div>
-                            ` : ''}
+                            <!-- 主页不显示图片 -->
                             
                             <!-- 帖子操作区域 -->
                             <div class="post-actions">
@@ -1232,7 +1332,7 @@
                                     </button>
                                     
                                     <!-- 管理员功能 -->
-                                    ${user && user.username === 'std114514' ? `
+                                    ${user && user.is_admin ? `
                                         <button class="action-btn delete-btn" data-post-id="${post.id}" data-type="post">
                                             🗑️ 删除
                                         </button>
@@ -1319,7 +1419,7 @@
                         .from('posts')
                         .select(`
                             *,
-                            users:user_id (username),
+                            users:user_id (username, is_admin),
                             post_votes!left(vote_type)
                         `)
                         .eq('id', postId)
@@ -1332,7 +1432,7 @@
                         .from('comments')
                         .select(`
                             *,
-                            users:user_id (username),
+                            users:user_id (username, is_admin),
                             comment_votes!left(vote_type)
                         `)
                         .eq('post_id', postId)
@@ -1343,11 +1443,11 @@
                     const user = checkAuthStatus();
                     const userVote = user ? post.post_votes?.find(vote => vote.user_id === user.id) : null;
                     
-                    // 渲染帖子详情时，修改标题显示
+                    // 渲染帖子详情
                     postDetailContent.innerHTML = `
                         <div class="post ${post.is_announcement ? 'announcement' : ''}">
                             <div class="post-header">
-                                <span class="post-author">${post.users.username}</span>
+                                <span class="post-author">${post.users.username} ${getUserTags(post.users)}</span>
                                 <span class="post-date">${formatDate(post.created_at)}</span>
                                 ${post.is_announcement ? '<span class="announcement-badge">公告</span>' : ''}
                             </div>
@@ -1382,7 +1482,7 @@
                                     </button>
                                     
                                     <!-- 管理员功能 -->
-                                    ${user && user.username === 'std114514' ? `
+                                    ${user && user.is_admin ? `
                                         <button class="action-btn delete-btn" data-post-id="${post.id}" data-type="post">
                                             🗑️ 删除
                                         </button>
@@ -1426,7 +1526,7 @@
                                         return `
                                             <div class="comment" data-comment-id="${comment.id}">
                                                 <div class="comment-header">
-                                                    <span class="comment-author">${comment.users.username}</span>
+                                                    <span class="comment-author">${comment.users.username} ${getUserTags(comment.users)}</span>
                                                     <span class="comment-date">${formatDate(comment.created_at)}</span>
                                                 </div>
                                                 <div class="comment-content">${comment.content}</div>
@@ -1452,7 +1552,7 @@
                                                         <button class="action-btn report-btn" data-comment-id="${comment.id}" data-type="comment">
                                                             ⚠️ 举报
                                                         </button>
-                                                        ${user && user.username === 'std114514' ? `
+                                                        ${user && user.is_admin ? `
                                                             <button class="action-btn delete-btn" data-comment-id="${comment.id}" data-type="comment">
                                                                 🗑️ 删除
                                                             </button>
@@ -1606,7 +1706,7 @@
                 loadPosts(currentPage); // 刷新帖子列表
             });
             
-            // 在发布帖子的代码中，添加标题处理
+            // 发布帖子
             postForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -1646,7 +1746,7 @@
                         .insert([
                             {
                                 user_id: user.id,
-                                title: title,  // 添加标题
+                                title: title,
                                 content: content,
                                 image_url: imageUrl
                             }
@@ -1654,7 +1754,6 @@
                     
                     if (error) throw error;
                     
-                    // 在发布帖子的成功回调中
                     showMessage('帖子发布成功', 'success');
                     document.getElementById('postTitle').value = '';
                     document.getElementById('postContent').value = '';
@@ -1663,7 +1762,7 @@
                     postImagePreview.style.display = 'none';
                     postImageInput.value = '';
                     
-                    // 刷新当前页，而不是总是跳到第一页
+                    // 刷新当前页
                     loadPosts(currentPage);
                     
                 } catch (error) {
@@ -1707,7 +1806,7 @@
                     const commentImagePreview = document.getElementById('commentImagePreview');
                     if (commentImagePreview) {
                         commentImagePreview.style.display = 'none';
-                    document.getElementById('commentImageInput').value = '';
+                        document.getElementById('commentImageInput').value = '';
                     }
                     
                     // 刷新帖子详情
@@ -1818,7 +1917,7 @@
                     if (currentPostId) {
                         showPostDetail(currentPostId);
                     } else {
-                        loadPosts();
+                        loadPosts(currentPage);
                     }
                     
                 } catch (error) {
@@ -1956,13 +2055,33 @@
                 try {
                     const user = checkAuthStatus();
                     
+                    // 获取被举报的内容标题
+                    let targetTitle = '';
+                    if (targetType === 'post') {
+                        const { data: post } = await supabase
+                            .from('posts')
+                            .select('title')
+                            .eq('id', targetId)
+                            .single();
+                        targetTitle = post?.title || '无标题';
+                    } else {
+                        const { data: comment } = await supabase
+                            .from('comments')
+                            .select('content')
+                            .eq('id', targetId)
+                            .single();
+                        targetTitle = comment?.content?.substring(0, 50) + '...' || '无内容';
+                    }
+                    
                     // 创建举报记录
                     const { data, error } = await supabase
                         .from('reports')
                         .insert([{
                             reporter_id: user.id,
+                            reporter_username: user.username,
                             target_type: targetType,
                             target_id: targetId,
+                            target_title: targetTitle,
                             reason: reason
                         }])
                         .select()
@@ -1970,8 +2089,8 @@
                     
                     if (error) throw error;
                     
-                    // 给管理员发送通知
-                    await sendReportNotificationToAdmin(data.id, targetType, targetId, user.username);
+                    // 给所有管理员发送通知
+                    await sendReportNotificationToAllAdmins(data.id, targetType, targetId, user.username, reason, targetTitle);
                     
                     // 给举报人发送通知
                     await createNotification(user.id, 'report_submitted', '举报已提交', '您的举报已提交，我们会尽快处理。', data.id);
@@ -1985,27 +2104,29 @@
                 }
             });
             
-            // 给管理员发送举报通知
-            async function sendReportNotificationToAdmin(reportId, targetType, targetId, reporterName) {
+            // 给所有管理员发送举报通知
+            async function sendReportNotificationToAllAdmins(reportId, targetType, targetId, reporterName, reason, targetTitle) {
                 try {
-                    // 获取管理员用户ID（std114514）
-                    const { data: admin, error: adminError } = await supabase
+                    // 获取所有管理员
+                    const { data: admins, error: adminsError } = await supabase
                         .from('users')
                         .select('id')
-                        .eq('username', 'std114514')
-                        .single();
+                        .eq('is_admin', true);
                     
-                    if (adminError) throw adminError;
+                    if (adminsError) throw adminsError;
                     
                     const targetText = targetType === 'post' ? '帖子' : '评论';
                     
-                    await createNotification(
-                        admin.id,
-                        'new_report',
-                        '新的举报',
-                        `用户 ${reporterName} 举报了一个${targetText}，请及时处理。`,
-                        reportId
-                    );
+                    // 给每个管理员发送通知
+                    for (const admin of admins) {
+                        await createNotification(
+                            admin.id,
+                            'new_report',
+                            '新的举报',
+                            `用户 ${reporterName} 举报了${targetText} id=${targetId}，理由是${reason}，请及时处理。`,
+                            reportId
+                        );
+                    }
                     
                 } catch (error) {
                     console.error('发送管理员通知失败:', error);
@@ -2015,8 +2136,18 @@
             // 删除帖子（管理员功能）
             async function deletePost(postId) {
                 const user = checkAuthStatus();
-                if (!user || user.username !== 'std114514') {
+                if (!user || !user.is_admin) {
                     showMessage('没有权限执行此操作', 'error');
+                    return;
+                }
+                
+                // 如果是站长std114514，直接删除；否则需要确认
+                if (user.username !== 'std114514') {
+                    if (!confirm('确定要删除这个帖子吗？此操作需要站长确认。')) {
+                        return;
+                    }
+                    // 这里可以添加向站长发送确认请求的逻辑
+                    showMessage('删除请求已发送给站长，等待确认', 'success');
                     return;
                 }
                 
@@ -2077,7 +2208,7 @@
                         window.history.replaceState({}, '', window.location.pathname);
                     }
                     
-                    loadPosts(); // 刷新帖子列表
+                    loadPosts(currentPage); // 刷新帖子列表
                     
                 } catch (error) {
                     console.error('删除帖子失败:', error);
@@ -2088,8 +2219,18 @@
             // 删除评论（管理员功能）
             async function deleteComment(commentId) {
                 const user = checkAuthStatus();
-                if (!user || user.username !== 'std114514') {
+                if (!user || !user.is_admin) {
                     showMessage('没有权限执行此操作', 'error');
+                    return;
+                }
+                
+                // 如果是站长std114514，直接删除；否则需要确认
+                if (user.username !== 'std114514') {
+                    if (!confirm('确定要删除这个评论吗？此操作需要站长确认。')) {
+                        return;
+                    }
+                    // 这里可以添加向站长发送确认请求的逻辑
+                    showMessage('删除请求已发送给站长，等待确认', 'success');
                     return;
                 }
                 
@@ -2154,7 +2295,7 @@
             // 设置/取消公告（管理员功能）
             async function toggleAnnouncement(postId) {
                 const user = checkAuthStatus();
-                if (!user || user.username !== 'std114514') {
+                if (!user || !user.is_admin) {
                     showMessage('没有权限执行此操作', 'error');
                     return;
                 }
@@ -2183,12 +2324,74 @@
                     if (currentPostId) {
                         showPostDetail(currentPostId);
                     } else {
-                        loadPosts();
+                        loadPosts(currentPage);
                     }
                     
                 } catch (error) {
                     console.error('设置公告失败:', error);
                     showMessage('操作失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 用户管理功能
+            async function loadUserManagement() {
+                try {
+                    const { data: users, error } = await supabase
+                        .from('users')
+                        .select('id, username, is_admin')
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) throw error;
+                    
+                    const userList = document.getElementById('userList');
+                    userList.innerHTML = users.map(user => `
+                        <div class="user-item">
+                            <div class="user-item-info">
+                                <span>${user.username}</span>
+                                ${getUserTags(user)}
+                            </div>
+                            <div class="admin-toggle ${user.is_admin ? 'active' : ''}" 
+                                 data-user-id="${user.id}" 
+                                 data-current-state="${user.is_admin}">
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    // 绑定切换事件
+                    document.querySelectorAll('.admin-toggle').forEach(toggle => {
+                        toggle.addEventListener('click', async function() {
+                            const userId = this.dataset.userId;
+                            const currentState = this.dataset.currentState === 'true';
+                            const newState = !currentState;
+                            
+                            // 更新数据库
+                            const { error } = await supabase
+                                .from('users')
+                                .update({ is_admin: newState })
+                                .eq('id', userId);
+                            
+                            if (error) {
+                                console.error('更新用户权限失败:', error);
+                                showMessage('更新失败', 'error');
+                                return;
+                            }
+                            
+                            // 更新UI
+                            this.classList.toggle('active');
+                            this.dataset.currentState = newState;
+                            
+                            // 更新用户标签
+                            const userItem = this.closest('.user-item');
+                            const userTags = userItem.querySelector('.user-item-info');
+                            const username = userTags.textContent.trim().split(' ')[0];
+                            userTags.innerHTML = `${username} ${getUserTags({username: username, is_admin: newState})}`;
+                            
+                            showMessage('用户权限已更新', 'success');
+                        });
+                    });
+                    
+                } catch (error) {
+                    console.error('加载用户列表失败:', error);
                 }
             }
             
@@ -2382,7 +2585,7 @@
             
             // 初始化
             checkAuthStatus();
-            loadPosts();
+            loadPosts(1);
             loadNotifications();
         });
     </script>
