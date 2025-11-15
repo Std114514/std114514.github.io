@@ -2268,13 +2268,13 @@
             // 处理帖子投票
             async function handlePostVote(postId, voteType) {
                 // 直接获取用户数据，避免异步问题
-                const userData = localStorage.getItem('userData');
+                const userData = await checkAuthStatus();
                 if (!userData) {
                     showMessage('请先登录', 'error');
                     return;
                 }
                 
-                const user = JSON.parse(userData);
+                const user = userData;
                 if (!user || !user.id) {
                     showMessage('用户信息无效，请重新登录', 'error');
                     return;
@@ -2383,13 +2383,13 @@
             // 处理评论投票
             async function handleCommentVote(commentId, voteType) {
                 // 直接获取用户数据，避免异步问题
-                const userData = localStorage.getItem('userData');
+                const userData = await checkAuthStatus();
                 if (!userData) {
                     showMessage('请先登录', 'error');
                     return;
                 }
                 
-                const user = JSON.parse(userData);
+                const user = userData;
                 if (!user || !user.id) {
                     showMessage('用户信息无效，请重新登录', 'error');
                     return;
@@ -2616,7 +2616,7 @@
             
             // 删除帖子（管理员功能）
             async function deletePost(postId) {
-                const user = checkAuthStatus();
+                const user = await checkAuthStatus();
                 if (!user || !user.is_admin) {
                     showMessage('没有权限执行此操作', 'error');
                     return;
@@ -2775,7 +2775,7 @@
             
             // 设置/取消公告（管理员功能）
             async function toggleAnnouncement(postId) {
-                const user = checkAuthStatus();
+                const user = await checkAuthStatus();
                 if (!user || !user.is_admin) {
                     showMessage('没有权限执行此操作', 'error');
                     return;
