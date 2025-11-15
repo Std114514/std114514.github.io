@@ -980,6 +980,121 @@
                 message.style.display = 'none';
             }, 3000);
         }
+
+        // 绑定详情页的事件
+            function bindDetailPageEvents() {
+                // 绑定投票按钮事件
+                document.querySelectorAll('#postDetailContent .vote-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (this.dataset.postId) {
+                            const postId = this.dataset.postId;
+                            const voteType = parseInt(this.dataset.voteType);
+                            handlePostVote(postId, voteType);
+                        } else if (this.dataset.commentId) {
+                            const commentId = this.dataset.commentId;
+                            const voteType = parseInt(this.dataset.voteType);
+                            handleCommentVote(commentId, voteType);
+                        }
+                    });
+                });
+                
+                // 绑定举报按钮事件
+                document.querySelectorAll('#postDetailContent .report-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const targetId = this.dataset.postId || this.dataset.commentId;
+                        const targetType = this.dataset.type;
+                        showReportModal(targetId, targetType);
+                    });
+                });
+                
+                // 绑定管理员删除按钮事件
+                document.querySelectorAll('#postDetailContent .delete-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (this.dataset.postId) {
+                            const postId = this.dataset.postId;
+                            deletePost(postId);
+                        } else if (this.dataset.commentId) {
+                            const commentId = this.dataset.commentId;
+                            const targetType = this.dataset.type;
+                            deleteComment(commentId);
+                        }
+                    });
+                });
+                
+                // 绑定管理员公告按钮事件
+                document.querySelectorAll('#postDetailContent .announcement-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const postId = this.dataset.postId;
+                        toggleAnnouncement(postId);
+                    });
+                });
+                
+                // 绑定评论图片上传事件
+                const commentImageUploadBtn = document.getElementById('commentImageUploadBtn');
+                const commentImageInput = document.getElementById('commentImageInput');
+                const commentImagePreview = document.getElementById('commentImagePreview');
+                const commentImagePreviewImg = document.getElementById('commentImagePreviewImg');
+                const removeCommentImage = document.getElementById('removeCommentImage');
+                
+                if (commentImageUploadBtn) {
+                    commentImageUploadBtn.addEventListener('click', function() {
+                        commentImageInput.click();
+                    });
+                    
+                    commentImageInput.addEventListener('change', function(e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            // 检查文件类型
+                            if (!file.type.startsWith('image/')) {
+                                showMessage('请选择图片文件', 'error');
+                                return;
+                            }
+                            
+                            // 检查文件大小 (限制为8MB)
+                            if (file.size > 8 * 1024 * 1024) {
+                                showMessage('图片大小不能超过8MB', 'error');
+                                return;
+                            }
+                            
+                            currentCommentImage = file;
+                            
+                            // 显示预览
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                commentImagePreviewImg.src = e.target.result;
+                                commentImagePreview.style.display = 'block';
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                    
+                    removeCommentImage.addEventListener('click', function() {
+                        currentCommentImage = null;
+                        commentImagePreview.style.display = 'none';
+                        commentImageInput.value = '';
+                    });
+                }
+                
+                // 绑定评论提交事件
+                const detailSubmitComment = document.getElementById('detailSubmitComment');
+                const detailCommentInput = document.getElementById('detailCommentInput');
+                
+                if (detailSubmitComment) {
+                    detailSubmitComment.addEventListener('click', function() {
+                        const content = detailCommentInput.value.trim();
+                        if (!content && !currentCommentImage) {
+                            showMessage('请输入评论内容或上传图片', 'error');
+                            return;
+                        }
+                        
+                        submitComment(currentPostId, content);
+                    });
+                }
+            }
         
         // 修改显示帖子详情的函数，添加登录检查
         async function showPostDetail(postId) {
@@ -1987,120 +2102,7 @@
             
 
             
-            // 绑定详情页的事件
-            function bindDetailPageEvents() {
-                // 绑定投票按钮事件
-                document.querySelectorAll('#postDetailContent .vote-btn').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        if (this.dataset.postId) {
-                            const postId = this.dataset.postId;
-                            const voteType = parseInt(this.dataset.voteType);
-                            handlePostVote(postId, voteType);
-                        } else if (this.dataset.commentId) {
-                            const commentId = this.dataset.commentId;
-                            const voteType = parseInt(this.dataset.voteType);
-                            handleCommentVote(commentId, voteType);
-                        }
-                    });
-                });
-                
-                // 绑定举报按钮事件
-                document.querySelectorAll('#postDetailContent .report-btn').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const targetId = this.dataset.postId || this.dataset.commentId;
-                        const targetType = this.dataset.type;
-                        showReportModal(targetId, targetType);
-                    });
-                });
-                
-                // 绑定管理员删除按钮事件
-                document.querySelectorAll('#postDetailContent .delete-btn').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        if (this.dataset.postId) {
-                            const postId = this.dataset.postId;
-                            deletePost(postId);
-                        } else if (this.dataset.commentId) {
-                            const commentId = this.dataset.commentId;
-                            const targetType = this.dataset.type;
-                            deleteComment(commentId);
-                        }
-                    });
-                });
-                
-                // 绑定管理员公告按钮事件
-                document.querySelectorAll('#postDetailContent .announcement-btn').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const postId = this.dataset.postId;
-                        toggleAnnouncement(postId);
-                    });
-                });
-                
-                // 绑定评论图片上传事件
-                const commentImageUploadBtn = document.getElementById('commentImageUploadBtn');
-                const commentImageInput = document.getElementById('commentImageInput');
-                const commentImagePreview = document.getElementById('commentImagePreview');
-                const commentImagePreviewImg = document.getElementById('commentImagePreviewImg');
-                const removeCommentImage = document.getElementById('removeCommentImage');
-                
-                if (commentImageUploadBtn) {
-                    commentImageUploadBtn.addEventListener('click', function() {
-                        commentImageInput.click();
-                    });
-                    
-                    commentImageInput.addEventListener('change', function(e) {
-                        const file = e.target.files[0];
-                        if (file) {
-                            // 检查文件类型
-                            if (!file.type.startsWith('image/')) {
-                                showMessage('请选择图片文件', 'error');
-                                return;
-                            }
-                            
-                            // 检查文件大小 (限制为8MB)
-                            if (file.size > 8 * 1024 * 1024) {
-                                showMessage('图片大小不能超过8MB', 'error');
-                                return;
-                            }
-                            
-                            currentCommentImage = file;
-                            
-                            // 显示预览
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                commentImagePreviewImg.src = e.target.result;
-                                commentImagePreview.style.display = 'block';
-                            };
-                            reader.readAsDataURL(file);
-                        }
-                    });
-                    
-                    removeCommentImage.addEventListener('click', function() {
-                        currentCommentImage = null;
-                        commentImagePreview.style.display = 'none';
-                        commentImageInput.value = '';
-                    });
-                }
-                
-                // 绑定评论提交事件
-                const detailSubmitComment = document.getElementById('detailSubmitComment');
-                const detailCommentInput = document.getElementById('detailCommentInput');
-                
-                if (detailSubmitComment) {
-                    detailSubmitComment.addEventListener('click', function() {
-                        const content = detailCommentInput.value.trim();
-                        if (!content && !currentCommentImage) {
-                            showMessage('请输入评论内容或上传图片', 'error');
-                            return;
-                        }
-                        
-                        submitComment(currentPostId, content);
-                    });
-                }
-            }
+            
             
             // 返回帖子列表
             backToList.addEventListener('click', function() {
