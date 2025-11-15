@@ -2080,7 +2080,7 @@
         
         // 处理@提及功能
         function processMentions(text, postId, commentId = null, mentionedBy) {
-            const mentionRegex = /@(\[\u4E00-\u9FA5\u3400-\u4DBFA-Za-z0-9~!@#$%^&*()_+{}|:"<>\?`\-=\[\]\\;',./·！￥…（）【】；：’“‘”，。？》《]+)/g;
+            const mentionRegex = /@([\u4E00-\u9FA5\u3400-\u4DBFA-Za-z0-9~!@#$%^&*()_+{}|:"<>\?`\-=\[\]\\;',./·！￥…（）【】；：’“‘”，。？》《]+)/g;
             const mentions = [];
             let match;
             
