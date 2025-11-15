@@ -2879,20 +2879,61 @@
                 }
             }
             
-            // 测试代码
-            async function testAuthStatus() {
-                console.log('测试认证状态...');
-                const user = await checkAuthStatus();
-                console.log('用户对象:', user);
-                console.log('localStorage 中的用户数据:', localStorage.getItem('userData'));
+            // 修复用户数据的工具函数
+            async function fixUserData() {
+                console.log('=== 修复用户数据 ===');
                 
-                if (user) {
-                    console.log('用户已登录:', user.username);
-                    console.log('管理员权限:', checkAdminPermission(user));
+                const userData = localStorage.getItem('userData');
+                if (!userData) {
+                    console.log('没有用户数据需要修复');
+                    return;
+                }
+                
+                const user = JSON.parse(userData);
+                console.log('当前用户数据:', user);
+                
+                // 检查并修复 is_admin 字段
+                if (user.is_admin === undefined || user.is_admin === null) {
+                    console.log('is_admin 字段缺失或为空，正在修复...');
+                    
+                    try {
+                        // 从服务器获取最新的用户信息
+                        const { data: userInfo, error } = await supabase
+                            .from('users')
+                            .select('id, username, is_admin')
+                            .eq('id', user.id)
+                            .single();
+                        
+                        if (error) {
+                            console.error('获取用户信息失败:', error);
+                            // 设置默认值
+                            user.is_admin = false;
+                        } else {
+                            // 使用服务器返回的值
+                            user.is_admin = userInfo.is_admin || false;
+                            console.log('从服务器获取的 is_admin:', user.is_admin);
+                        }
+                        
+                        // 强制站长 std114514 拥有管理员权限
+                        if (user.username === 'std114514') {
+                            user.is_admin = true;
+                            console.log('强制设置站长权限为 true');
+                        }
+                        
+                        // 保存修复后的数据
+                        localStorage.setItem('userData', JSON.stringify(user));
+                        console.log('用户数据已修复:', user);
+                        
+                    } catch (error) {
+                        console.error('修复用户数据失败:', error);
+                    }
                 } else {
-                    console.log('用户未登录');
+                    console.log('is_admin 字段已存在:', user.is_admin);
                 }
             }
+            
+            // 运行修复
+            fixUserData();
             
             // 事件绑定
             // 通知铃铛点击事件
