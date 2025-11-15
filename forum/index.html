@@ -735,6 +735,11 @@
                     <div class="new-post-section" id="newPostSection" style="display: none;">
                         <h3>发表新帖子</h3>
                         <form class="post-form" id="postForm">
+                            <!-- 添加标题输入框 -->
+                            <input type="text" id="postTitle" placeholder="请输入帖子标题..." 
+                                   style="width: 100%; padding: 12px; border: none; border-radius: 10px; 
+                                          background: rgba(255, 255, 255, 0.9); font-size: 1rem; margin-bottom: 15px;">
+                            
                             <textarea id="postContent" placeholder="分享您的想法..."></textarea>
                             
                             <!-- 图片上传区域 -->
@@ -764,6 +769,20 @@
                         <h3>最新帖子</h3>
                         <div id="postsList">
                             <!-- 帖子将通过JS动态加载 -->
+                        </div>
+                        <!-- 分页控件 - 添加在这里 -->
+                        <div class="pagination" id="pagination" style="margin-top: 20px; text-align: center; display: none;">
+                            <div style="margin-bottom: 10px;">
+                                <span>选择页数：</span>
+                                <input type="number" id="pageInput" min="1" value="1" 
+                                       style="width: 60px; padding: 5px; border: none; border-radius: 5px; text-align: center; background: rgba(255, 255, 255, 0.9); color: #000;">
+                                <span id="totalPages"> / 1 页</span>
+                            </div>
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <button id="prevPage" class="action-btn">上一页</button>
+                                <button id="nextPage" class="action-btn">下一页</button>
+                                <button id="goToPage" class="action-btn">跳转</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -959,6 +978,125 @@
             checkAuthStatus();
             // 检查URL参数
             checkUrlParams();
+
+            // 分页相关变量
+            let currentPage = 1;
+            const postsPerPage = 20;
+            let totalPosts = 0;
+            
+            // 修改后的 loadPosts 函数
+            async function loadPosts(page = 1) {
+                try {
+                    currentPage = page;
+                    
+                    // 首先获取帖子总数
+                    const { count, error: countError } = await supabase
+                        .from('posts')
+                        .select('*', { count: 'exact', head: true });
+                    
+                    if (countError) throw countError;
+                    
+                    totalPosts = count;
+                    const totalPages = Math.ceil(totalPosts / postsPerPage);
+                    
+                    // 计算分页偏移量
+                    const from = (page - 1) * postsPerPage;
+                    const to = from + postsPerPage - 1;
+                    
+                    const { data, error } = await supabase
+                        .from('posts')
+                        .select(`
+                            *,
+                            users:user_id (username),
+                            post_votes!left(vote_type),
+                            comments:comments(count)
+                        `)
+                        .order('created_at', { ascending: false })
+                        .range(from, to);
+                    
+                    if (error) throw error;
+                    
+                    renderPosts(data || []);
+                    updatePaginationControls(totalPages, page);
+                    
+                } catch (error) {
+                    console.error('加载帖子失败:', error);
+                    postsList.innerHTML = '<div class="post"><div class="post-content">加载帖子失败，请刷新页面重试</div></div>';
+                }
+            }
+            
+            // 更新分页控件
+            function updatePaginationControls(totalPages, currentPage) {
+                const pagination = document.getElementById('pagination');
+                const pageInput = document.getElementById('pageInput');
+                const totalPagesSpan = document.getElementById('totalPages');
+                const prevPageBtn = document.getElementById('prevPage');
+                const nextPageBtn = document.getElementById('nextPage');
+                
+                if (totalPages <= 1) {
+                    pagination.style.display = 'none';
+                    return;
+                }
+                
+                pagination.style.display = 'block';
+                pageInput.value = currentPage;
+                pageInput.max = totalPages;
+                totalPagesSpan.textContent = ` / ${totalPages} 页`;
+                
+                // 更新按钮状态
+                prevPageBtn.disabled = currentPage === 1;
+                nextPageBtn.disabled = currentPage === totalPages;
+                
+                // 添加样式来显示禁用状态
+                if (prevPageBtn.disabled) {
+                    prevPageBtn.style.opacity = '0.5';
+                    prevPageBtn.style.cursor = 'not-allowed';
+                } else {
+                    prevPageBtn.style.opacity = '1';
+                    prevPageBtn.style.cursor = 'pointer';
+                }
+                
+                if (nextPageBtn.disabled) {
+                    nextPageBtn.style.opacity = '0.5';
+                    nextPageBtn.style.cursor = 'not-allowed';
+                } else {
+                    nextPageBtn.style.opacity = '1';
+                    nextPageBtn.style.cursor = 'pointer';
+                }
+            }
+            
+            // 分页事件绑定 - 在DOMContentLoaded函数内部添加
+            document.getElementById('prevPage').addEventListener('click', function() {
+                if (currentPage > 1) {
+                    loadPosts(currentPage - 1);
+                }
+            });
+            
+            document.getElementById('nextPage').addEventListener('click', function() {
+                const totalPages = Math.ceil(totalPosts / postsPerPage);
+                if (currentPage < totalPages) {
+                    loadPosts(currentPage + 1);
+                }
+            });
+            
+            document.getElementById('goToPage').addEventListener('click', function() {
+                const pageInput = document.getElementById('pageInput');
+                const page = parseInt(pageInput.value);
+                const totalPages = Math.ceil(totalPosts / postsPerPage);
+                
+                if (page >= 1 && page <= totalPages) {
+                    loadPosts(page);
+                } else {
+                    showMessage('请输入有效的页码', 'error');
+                }
+            });
+            
+            // 支持按回车跳转页面
+            document.getElementById('pageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('goToPage').click();
+                }
+            });
             
             // 绑定顶部登录按钮事件
             topLoginBtn.addEventListener('click', function() {
@@ -1061,7 +1199,10 @@
                                 <span class="post-date">${formatDate(post.created_at)}</span>
                                 ${post.is_announcement ? '<span class="announcement-badge">公告</span>' : ''}
                             </div>
-                            <div class="post-content">${post.content}</div>
+                            <!-- 修改这里：只显示标题 -->
+                            <div class="post-title" style="font-weight: bold; font-size: 1.1rem; margin-bottom: 10px;">
+                                ${post.title || '无标题'}
+                            </div>
                             
                             ${post.image_url ? `
                                 <div class="post-image">
@@ -1202,13 +1343,17 @@
                     const user = checkAuthStatus();
                     const userVote = user ? post.post_votes?.find(vote => vote.user_id === user.id) : null;
                     
-                    // 渲染帖子详情
+                    // 渲染帖子详情时，修改标题显示
                     postDetailContent.innerHTML = `
                         <div class="post ${post.is_announcement ? 'announcement' : ''}">
                             <div class="post-header">
                                 <span class="post-author">${post.users.username}</span>
                                 <span class="post-date">${formatDate(post.created_at)}</span>
                                 ${post.is_announcement ? '<span class="announcement-badge">公告</span>' : ''}
+                            </div>
+                            <!-- 修改这里：显示帖子标题 -->
+                            <div class="post-title" style="font-weight: bold; font-size: 1.3rem; margin-bottom: 15px; color: #ffcc00;">
+                                ${post.title || '无标题'}
                             </div>
                             <div class="post-content">${post.content}</div>
                             
@@ -1458,10 +1603,10 @@
                 currentPostId = null;
                 // 清除URL参数
                 window.history.replaceState({}, '', window.location.pathname);
-                loadPosts(); // 刷新帖子列表
+                loadPosts(currentPage); // 刷新帖子列表
             });
             
-            // 发布帖子
+            // 在发布帖子的代码中，添加标题处理
             postForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -1471,7 +1616,13 @@
                     return;
                 }
                 
+                const title = document.getElementById('postTitle').value.trim();
                 const content = document.getElementById('postContent').value.trim();
+                
+                if (!title) {
+                    showMessage('请输入帖子标题', 'error');
+                    return;
+                }
                 
                 if (!content && !currentPostImage) {
                     showMessage('请输入帖子内容或上传图片', 'error');
@@ -1495,6 +1646,7 @@
                         .insert([
                             {
                                 user_id: user.id,
+                                title: title,  // 添加标题
                                 content: content,
                                 image_url: imageUrl
                             }
@@ -1502,14 +1654,17 @@
                     
                     if (error) throw error;
                     
+                    // 在发布帖子的成功回调中
                     showMessage('帖子发布成功', 'success');
+                    document.getElementById('postTitle').value = '';
                     document.getElementById('postContent').value = '';
                     // 重置图片上传
                     currentPostImage = null;
                     postImagePreview.style.display = 'none';
                     postImageInput.value = '';
                     
-                    loadPosts();
+                    // 刷新当前页，而不是总是跳到第一页
+                    loadPosts(currentPage);
                     
                 } catch (error) {
                     console.error('发布帖子失败:', error);
