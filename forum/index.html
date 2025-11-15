@@ -944,6 +944,71 @@
         let currentPostImage = null;
         let currentCommentImage = null;
 
+// 修改提交评论函数，确保正确获取用户ID
+            async function submitComment(postId, content) {
+                // 使用 await 确保获取到最新的用户状态
+                const user = await checkAuthStatus();
+                if (!user) {
+                    showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                if (!user.id) {
+                    showMessage('用户信息无效，请重新登录', 'error');
+                    return;
+                }
+                
+                try {
+                    let imageUrl = null;
+                    if (currentCommentImage) {
+                        showMessage('正在上传图片...', 'success');
+                        imageUrl = await uploadImage(currentCommentImage, 'comments');
+                    }
+                    
+                    console.log('发布评论，用户ID:', user.id, '用户名:', user.username);
+                    
+                    const { data: comment, error } = await supabase
+                        .from('comments')
+                        .insert([
+                            {
+                                user_id: user.id, // 确保这里传递的是正确的用户ID
+                                post_id: postId,
+                                content: content,
+                                image_url: imageUrl,
+                                likes: 0,
+                                dislikes: 0
+                            }
+                        ])
+                        .select()
+                        .single();
+                    
+                    if (error) {
+                        console.error('发布评论失败:', error);
+                        throw error;
+                    }
+                    
+                    // 处理@提及
+                    processMentions(content, postId, comment.id, user.id);
+                    
+                    showMessage('评论发布成功', 'success');
+                    document.getElementById('detailCommentInput').value = '';
+                    // 重置图片上传
+                    currentCommentImage = null;
+                    const commentImagePreview = document.getElementById('commentImagePreview');
+                    if (commentImagePreview) {
+                        commentImagePreview.style.display = 'none';
+                        document.getElementById('commentImageInput').value = '';
+                    }
+                    
+                    // 刷新帖子详情
+                    showPostDetail(postId);
+                    
+                } catch (error) {
+                    console.error('发布评论失败:', error);
+                    showMessage('发布失败: ' + error.message, 'error');
+                }
+            }
+        
         // 工具函数
         // 格式化日期
         function formatDate(dateString) {
@@ -2198,70 +2263,7 @@
                 }
             }
             
-            // 修改提交评论函数，确保正确获取用户ID
-            async function submitComment(postId, content) {
-                // 使用 await 确保获取到最新的用户状态
-                const user = await checkAuthStatus();
-                if (!user) {
-                    showMessage('请先登录', 'error');
-                    return;
-                }
-                
-                if (!user.id) {
-                    showMessage('用户信息无效，请重新登录', 'error');
-                    return;
-                }
-                
-                try {
-                    let imageUrl = null;
-                    if (currentCommentImage) {
-                        showMessage('正在上传图片...', 'success');
-                        imageUrl = await uploadImage(currentCommentImage, 'comments');
-                    }
-                    
-                    console.log('发布评论，用户ID:', user.id, '用户名:', user.username);
-                    
-                    const { data: comment, error } = await supabase
-                        .from('comments')
-                        .insert([
-                            {
-                                user_id: user.id, // 确保这里传递的是正确的用户ID
-                                post_id: postId,
-                                content: content,
-                                image_url: imageUrl,
-                                likes: 0,
-                                dislikes: 0
-                            }
-                        ])
-                        .select()
-                        .single();
-                    
-                    if (error) {
-                        console.error('发布评论失败:', error);
-                        throw error;
-                    }
-                    
-                    // 处理@提及
-                    processMentions(content, postId, comment.id, user.id);
-                    
-                    showMessage('评论发布成功', 'success');
-                    document.getElementById('detailCommentInput').value = '';
-                    // 重置图片上传
-                    currentCommentImage = null;
-                    const commentImagePreview = document.getElementById('commentImagePreview');
-                    if (commentImagePreview) {
-                        commentImagePreview.style.display = 'none';
-                        document.getElementById('commentImageInput').value = '';
-                    }
-                    
-                    // 刷新帖子详情
-                    showPostDetail(postId);
-                    
-                } catch (error) {
-                    console.error('发布评论失败:', error);
-                    showMessage('发布失败: ' + error.message, 'error');
-                }
-            }
+            
             
             // 处理帖子投票
             async function handlePostVote(postId, voteType) {
