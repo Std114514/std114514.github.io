@@ -944,6 +944,394 @@
         let currentPostImage = null;
         let currentCommentImage = null;
 
+// 显示举报弹窗
+            function showReportModal(targetId, targetType) {
+                const user = checkAuthStatus();
+                if (!user) {
+                    showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                reportTargetId.value = targetId;
+                reportTargetType.value = targetType;
+                reportReason.value = '';
+                reportModal.style.display = 'flex';
+            }
+            
+            // 提交举报
+            submitReport.addEventListener('click', async function() {
+                const targetId = reportTargetId.value;
+                const targetType = reportTargetType.value;
+                const reason = reportReason.value.trim();
+                
+                if (!reason) {
+                    showMessage('请输入举报原因', 'error');
+                    return;
+                }
+                
+                // 直接获取用户数据，避免异步问题
+                const userData = localStorage.getItem('userData');
+                if (!userData) {
+                    showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                try {
+                    const user = JSON.parse(userData);
+                    
+                    if (!user || !user.id) {
+                        showMessage('用户信息无效，请重新登录', 'error');
+                        return;
+                    }
+                    
+                    // 获取被举报的内容标题
+                    let targetTitle = '';
+                    if (targetType === 'post') {
+                        const { data: post } = await supabase
+                            .from('posts')
+                            .select('title')
+                            .eq('id', targetId)
+                            .single();
+                        targetTitle = post?.title || '无标题';
+                    } else {
+                        const { data: comment } = await supabase
+                            .from('comments')
+                            .select('content')
+                            .eq('id', targetId)
+                            .single();
+                        targetTitle = comment?.content?.substring(0, 50) + '...' || '无内容';
+                    }
+                    
+                    console.log('提交举报，用户ID:', user.id, '用户名:', user.username);
+                    
+                    // 创建举报记录 - 确保所有必需字段都有值
+                    const { data, error } = await supabase
+                        .from('reports')
+                        .insert([{
+                            reporter_id: user.id,
+                            reporter_username: user.username,
+                            target_type: targetType,
+                            target_id: targetId,
+                            target_title: targetTitle,
+                            reason: reason,
+                            status: 'pending',
+                            created_at: new Date().toISOString()
+                        }])
+                        .select()
+                        .single();
+                    
+                    if (error) {
+                        console.error('举报失败:', error);
+                        showMessage('举报失败: ' + error.message, 'error');
+                        return;
+                    }
+                    
+                    // 给所有管理员发送通知
+                    await sendReportNotificationToAllAdmins(data.id, targetType, targetId, user.username, reason, targetTitle);
+                    
+                    // 给举报人发送通知
+                    await createNotification(user.id, 'report_submitted', '举报已提交', '您的举报已提交，我们会尽快处理。', data.id);
+                    
+                    showMessage('举报已提交，我们会尽快处理', 'success');
+                    reportModal.style.display = 'none';
+                    
+                } catch (error) {
+                    console.error('举报失败:', error);
+                    showMessage('举报失败，请稍后重试', 'error');
+                }
+            });
+            
+            // 给所有管理员发送举报通知
+            async function sendReportNotificationToAllAdmins(reportId, targetType, targetId, reporterName, reason, targetTitle) {
+                try {
+                    // 获取所有管理员
+                    const { data: admins, error: adminsError } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('is_admin', true);
+                    
+                    if (adminsError) throw adminsError;
+                    
+                    const targetText = targetType === 'post' ? '帖子' : '评论';
+                    
+                    // 给每个管理员发送通知
+                    for (const admin of admins) {
+                        await createNotification(
+                            admin.id,
+                            'new_report',
+                            '新的举报',
+                            `用户 ${reporterName} 举报了${targetText} ${targetTitle}(id=${targetId})，理由是${reason}，请及时处理。`,
+                            reportId
+                        );
+                    }
+                    
+                } catch (error) {
+                    console.error('发送管理员通知失败:', error);
+                }
+            }
+            
+            // 删除帖子（管理员功能）
+            async function deletePost(postId) {
+                const user = await checkAuthStatus();
+                if (!user || !user.is_admin) {
+                    showMessage('没有权限执行此操作', 'error');
+                    return;
+                }
+                
+                // 如果是站长std114514，直接删除；否则需要确认
+                if (user.username !== 'std114514') {
+                    if (!confirm('确定要删除这个帖子吗？此操作需要站长确认。')) {
+                        return;
+                    }
+                    // 这里可以添加向站长发送确认请求的逻辑
+                    showMessage('删除请求已发送给站长，等待确认', 'success');
+                    return;
+                }
+                
+                if (!confirm('确定要删除这个帖子吗？此操作不可撤销。')) {
+                    return;
+                }
+                
+                try {
+                    // 获取帖子作者信息
+                    const { data: post, error: postError } = await supabase
+                        .from('posts')
+                        .select('user_id, content, image_url')
+                        .eq('id', postId)
+                        .single();
+                    
+                    if (postError) throw postError;
+                    
+                    // 如果帖子有图片，从存储中删除
+                    if (post.image_url) {
+                        const fileName = post.image_url.split('/').pop();
+                        const { error: deleteImageError } = await supabase.storage
+                            .from('forum-images')
+                            .remove([`posts/${fileName}`]);
+                        
+                        if (deleteImageError) {
+                            console.error('删除帖子图片失败:', deleteImageError);
+                        }
+                    }
+                    
+                    // 删除帖子
+                    const { error: deleteError } = await supabase
+                        .from('posts')
+                        .delete()
+                        .eq('id', postId);
+                    
+                    if (deleteError) throw deleteError;
+                    
+                    // 给帖子作者发送通知
+                    if (post.user_id !== user.id) {
+                        await createNotification(
+                            post.user_id,
+                            'post_deleted',
+                            '帖子被删除',
+                            '您发布的帖子因违反社区规定已被管理员删除。',
+                            postId
+                        );
+                    }
+                    
+                    showMessage('帖子已删除', 'success');
+                    
+                    // 刷新显示
+                    if (currentPostId === postId) {
+                        // 如果正在查看被删除的帖子，返回列表
+                        postsListView.style.display = 'block';
+                        postDetailView.style.display = 'none';
+                        currentPostId = null;
+                        // 清除URL参数
+                        window.history.replaceState({}, '', window.location.pathname);
+                    }
+                    
+                    loadPosts(currentPage); // 刷新帖子列表
+                    
+                } catch (error) {
+                    console.error('删除帖子失败:', error);
+                    showMessage('删除失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 删除评论（管理员功能）
+            async function deleteComment(commentId) {
+                const user = checkAuthStatus();
+                if (!user || !user.is_admin) {
+                    showMessage('没有权限执行此操作', 'error');
+                    return;
+                }
+                
+                // 如果是站长std114514，直接删除；否则需要确认
+                if (user.username !== 'std114514') {
+                    if (!confirm('确定要删除这个评论吗？此操作需要站长确认。')) {
+                        return;
+                    }
+                    // 这里可以添加向站长发送确认请求的逻辑
+                    showMessage('删除请求已发送给站长，等待确认', 'success');
+                    return;
+                }
+                
+                if (!confirm('确定要删除这个评论吗？此操作不可撤销。')) {
+                    return;
+                }
+                
+                try {
+                    // 获取评论信息
+                    const { data: comment, error: commentError } = await supabase
+                        .from('comments')
+                        .select('user_id, content, image_url, post_id')
+                        .eq('id', commentId)
+                        .single();
+                    
+                    if (commentError) throw commentError;
+                    
+                    // 如果评论有图片，从存储中删除
+                    if (comment.image_url) {
+                        const fileName = comment.image_url.split('/').pop();
+                        const { error: deleteImageError } = await supabase.storage
+                            .from('forum-images')
+                            .remove([`comments/${fileName}`]);
+                        
+                        if (deleteImageError) {
+                            console.error('删除评论图片失败:', deleteImageError);
+                        }
+                    }
+                    
+                    // 删除评论
+                    const { error: deleteError } = await supabase
+                        .from('comments')
+                        .delete()
+                        .eq('id', commentId);
+                    
+                    if (deleteError) throw deleteError;
+                    
+                    // 给评论作者发送通知
+                    if (comment.user_id !== user.id) {
+                        await createNotification(
+                            comment.user_id,
+                            'comment_deleted',
+                            '评论被删除',
+                            '您发布的评论因违反社区规定已被管理员删除。',
+                            commentId
+                        );
+                    }
+                    
+                    showMessage('评论已删除', 'success');
+                    
+                    // 刷新帖子详情
+                    if (currentPostId) {
+                        showPostDetail(currentPostId);
+                    }
+                    
+                } catch (error) {
+                    console.error('删除评论失败:', error);
+                    showMessage('删除失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 设置/取消公告（管理员功能）
+            async function toggleAnnouncement(postId) {
+                const user = await checkAuthStatus();
+                if (!user || !user.is_admin) {
+                    showMessage('没有权限执行此操作', 'error');
+                    return;
+                }
+                
+                try {
+                    // 获取当前状态
+                    const { data: post, error: postError } = await supabase
+                        .from('posts')
+                        .select('is_announcement')
+                        .eq('id', postId)
+                        .single();
+                    
+                    if (postError) throw postError;
+                    
+                    // 切换状态
+                    const { error: updateError } = await supabase
+                        .from('posts')
+                        .update({ is_announcement: !post.is_announcement })
+                        .eq('id', postId);
+                    
+                    if (updateError) throw updateError;
+                    
+                    showMessage(`已${!post.is_announcement ? '设为' : '取消'}公告`, 'success');
+                    
+                    // 刷新显示
+                    if (currentPostId) {
+                        showPostDetail(currentPostId);
+                    } else {
+                        loadPosts(currentPage);
+                    }
+                    
+                } catch (error) {
+                    console.error('设置公告失败:', error);
+                    showMessage('操作失败，请稍后重试', 'error');
+                }
+            }
+            
+            // 用户管理功能
+            async function loadUserManagement() {
+                try {
+                    const { data: users, error } = await supabase
+                        .from('users')
+                        .select('id, username, is_admin')
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) throw error;
+                    
+                    const userList = document.getElementById('userList');
+                    userList.innerHTML = users.map(user => `
+                        <div class="user-item">
+                            <div class="user-item-info">
+                                <span>${user.username}</span>
+                                ${getUserTags(user)}
+                            </div>
+                            <div class="admin-toggle ${user.is_admin ? 'active' : ''}" 
+                                 data-user-id="${user.id}" 
+                                 data-current-state="${user.is_admin}">
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    // 绑定切换事件
+                    document.querySelectorAll('.admin-toggle').forEach(toggle => {
+                        toggle.addEventListener('click', async function() {
+                            const userId = this.dataset.userId;
+                            const currentState = this.dataset.currentState === 'true';
+                            const newState = !currentState;
+                            
+                            // 更新数据库
+                            const { error } = await supabase
+                                .from('users')
+                                .update({ is_admin: newState })
+                                .eq('id', userId);
+                            
+                            if (error) {
+                                console.error('更新用户权限失败:', error);
+                                showMessage('更新失败', 'error');
+                                return;
+                            }
+                            
+                            // 更新UI
+                            this.classList.toggle('active');
+                            this.dataset.currentState = newState;
+                            
+                            // 更新用户标签
+                            const userItem = this.closest('.user-item');
+                            const userTags = userItem.querySelector('.user-item-info');
+                            const username = userTags.textContent.trim().split(' ')[0];
+                            userTags.innerHTML = `${username} ${getUserTags({username: username, is_admin: newState})}`;
+                            
+                            showMessage('用户权限已更新', 'success');
+                        });
+                    });
+                    
+                } catch (error) {
+                    console.error('加载用户列表失败:', error);
+                }
+            }
+        
 // 修改提交评论函数，确保正确获取用户ID
             async function submitComment(postId, content) {
                 // 使用 await 确保获取到最新的用户状态
@@ -2488,393 +2876,7 @@
                 }
             }
             
-            // 显示举报弹窗
-            function showReportModal(targetId, targetType) {
-                const user = checkAuthStatus();
-                if (!user) {
-                    showMessage('请先登录', 'error');
-                    return;
-                }
-                
-                reportTargetId.value = targetId;
-                reportTargetType.value = targetType;
-                reportReason.value = '';
-                reportModal.style.display = 'flex';
-            }
             
-            // 提交举报
-            submitReport.addEventListener('click', async function() {
-                const targetId = reportTargetId.value;
-                const targetType = reportTargetType.value;
-                const reason = reportReason.value.trim();
-                
-                if (!reason) {
-                    showMessage('请输入举报原因', 'error');
-                    return;
-                }
-                
-                // 直接获取用户数据，避免异步问题
-                const userData = localStorage.getItem('userData');
-                if (!userData) {
-                    showMessage('请先登录', 'error');
-                    return;
-                }
-                
-                try {
-                    const user = JSON.parse(userData);
-                    
-                    if (!user || !user.id) {
-                        showMessage('用户信息无效，请重新登录', 'error');
-                        return;
-                    }
-                    
-                    // 获取被举报的内容标题
-                    let targetTitle = '';
-                    if (targetType === 'post') {
-                        const { data: post } = await supabase
-                            .from('posts')
-                            .select('title')
-                            .eq('id', targetId)
-                            .single();
-                        targetTitle = post?.title || '无标题';
-                    } else {
-                        const { data: comment } = await supabase
-                            .from('comments')
-                            .select('content')
-                            .eq('id', targetId)
-                            .single();
-                        targetTitle = comment?.content?.substring(0, 50) + '...' || '无内容';
-                    }
-                    
-                    console.log('提交举报，用户ID:', user.id, '用户名:', user.username);
-                    
-                    // 创建举报记录 - 确保所有必需字段都有值
-                    const { data, error } = await supabase
-                        .from('reports')
-                        .insert([{
-                            reporter_id: user.id,
-                            reporter_username: user.username,
-                            target_type: targetType,
-                            target_id: targetId,
-                            target_title: targetTitle,
-                            reason: reason,
-                            status: 'pending',
-                            created_at: new Date().toISOString()
-                        }])
-                        .select()
-                        .single();
-                    
-                    if (error) {
-                        console.error('举报失败:', error);
-                        showMessage('举报失败: ' + error.message, 'error');
-                        return;
-                    }
-                    
-                    // 给所有管理员发送通知
-                    await sendReportNotificationToAllAdmins(data.id, targetType, targetId, user.username, reason, targetTitle);
-                    
-                    // 给举报人发送通知
-                    await createNotification(user.id, 'report_submitted', '举报已提交', '您的举报已提交，我们会尽快处理。', data.id);
-                    
-                    showMessage('举报已提交，我们会尽快处理', 'success');
-                    reportModal.style.display = 'none';
-                    
-                } catch (error) {
-                    console.error('举报失败:', error);
-                    showMessage('举报失败，请稍后重试', 'error');
-                }
-            });
-            
-            // 给所有管理员发送举报通知
-            async function sendReportNotificationToAllAdmins(reportId, targetType, targetId, reporterName, reason, targetTitle) {
-                try {
-                    // 获取所有管理员
-                    const { data: admins, error: adminsError } = await supabase
-                        .from('users')
-                        .select('id')
-                        .eq('is_admin', true);
-                    
-                    if (adminsError) throw adminsError;
-                    
-                    const targetText = targetType === 'post' ? '帖子' : '评论';
-                    
-                    // 给每个管理员发送通知
-                    for (const admin of admins) {
-                        await createNotification(
-                            admin.id,
-                            'new_report',
-                            '新的举报',
-                            `用户 ${reporterName} 举报了${targetText} ${targetTitle}(id=${targetId})，理由是${reason}，请及时处理。`,
-                            reportId
-                        );
-                    }
-                    
-                } catch (error) {
-                    console.error('发送管理员通知失败:', error);
-                }
-            }
-            
-            // 删除帖子（管理员功能）
-            async function deletePost(postId) {
-                const user = await checkAuthStatus();
-                if (!user || !user.is_admin) {
-                    showMessage('没有权限执行此操作', 'error');
-                    return;
-                }
-                
-                // 如果是站长std114514，直接删除；否则需要确认
-                if (user.username !== 'std114514') {
-                    if (!confirm('确定要删除这个帖子吗？此操作需要站长确认。')) {
-                        return;
-                    }
-                    // 这里可以添加向站长发送确认请求的逻辑
-                    showMessage('删除请求已发送给站长，等待确认', 'success');
-                    return;
-                }
-                
-                if (!confirm('确定要删除这个帖子吗？此操作不可撤销。')) {
-                    return;
-                }
-                
-                try {
-                    // 获取帖子作者信息
-                    const { data: post, error: postError } = await supabase
-                        .from('posts')
-                        .select('user_id, content, image_url')
-                        .eq('id', postId)
-                        .single();
-                    
-                    if (postError) throw postError;
-                    
-                    // 如果帖子有图片，从存储中删除
-                    if (post.image_url) {
-                        const fileName = post.image_url.split('/').pop();
-                        const { error: deleteImageError } = await supabase.storage
-                            .from('forum-images')
-                            .remove([`posts/${fileName}`]);
-                        
-                        if (deleteImageError) {
-                            console.error('删除帖子图片失败:', deleteImageError);
-                        }
-                    }
-                    
-                    // 删除帖子
-                    const { error: deleteError } = await supabase
-                        .from('posts')
-                        .delete()
-                        .eq('id', postId);
-                    
-                    if (deleteError) throw deleteError;
-                    
-                    // 给帖子作者发送通知
-                    if (post.user_id !== user.id) {
-                        await createNotification(
-                            post.user_id,
-                            'post_deleted',
-                            '帖子被删除',
-                            '您发布的帖子因违反社区规定已被管理员删除。',
-                            postId
-                        );
-                    }
-                    
-                    showMessage('帖子已删除', 'success');
-                    
-                    // 刷新显示
-                    if (currentPostId === postId) {
-                        // 如果正在查看被删除的帖子，返回列表
-                        postsListView.style.display = 'block';
-                        postDetailView.style.display = 'none';
-                        currentPostId = null;
-                        // 清除URL参数
-                        window.history.replaceState({}, '', window.location.pathname);
-                    }
-                    
-                    loadPosts(currentPage); // 刷新帖子列表
-                    
-                } catch (error) {
-                    console.error('删除帖子失败:', error);
-                    showMessage('删除失败，请稍后重试', 'error');
-                }
-            }
-            
-            // 删除评论（管理员功能）
-            async function deleteComment(commentId) {
-                const user = checkAuthStatus();
-                if (!user || !user.is_admin) {
-                    showMessage('没有权限执行此操作', 'error');
-                    return;
-                }
-                
-                // 如果是站长std114514，直接删除；否则需要确认
-                if (user.username !== 'std114514') {
-                    if (!confirm('确定要删除这个评论吗？此操作需要站长确认。')) {
-                        return;
-                    }
-                    // 这里可以添加向站长发送确认请求的逻辑
-                    showMessage('删除请求已发送给站长，等待确认', 'success');
-                    return;
-                }
-                
-                if (!confirm('确定要删除这个评论吗？此操作不可撤销。')) {
-                    return;
-                }
-                
-                try {
-                    // 获取评论信息
-                    const { data: comment, error: commentError } = await supabase
-                        .from('comments')
-                        .select('user_id, content, image_url, post_id')
-                        .eq('id', commentId)
-                        .single();
-                    
-                    if (commentError) throw commentError;
-                    
-                    // 如果评论有图片，从存储中删除
-                    if (comment.image_url) {
-                        const fileName = comment.image_url.split('/').pop();
-                        const { error: deleteImageError } = await supabase.storage
-                            .from('forum-images')
-                            .remove([`comments/${fileName}`]);
-                        
-                        if (deleteImageError) {
-                            console.error('删除评论图片失败:', deleteImageError);
-                        }
-                    }
-                    
-                    // 删除评论
-                    const { error: deleteError } = await supabase
-                        .from('comments')
-                        .delete()
-                        .eq('id', commentId);
-                    
-                    if (deleteError) throw deleteError;
-                    
-                    // 给评论作者发送通知
-                    if (comment.user_id !== user.id) {
-                        await createNotification(
-                            comment.user_id,
-                            'comment_deleted',
-                            '评论被删除',
-                            '您发布的评论因违反社区规定已被管理员删除。',
-                            commentId
-                        );
-                    }
-                    
-                    showMessage('评论已删除', 'success');
-                    
-                    // 刷新帖子详情
-                    if (currentPostId) {
-                        showPostDetail(currentPostId);
-                    }
-                    
-                } catch (error) {
-                    console.error('删除评论失败:', error);
-                    showMessage('删除失败，请稍后重试', 'error');
-                }
-            }
-            
-            // 设置/取消公告（管理员功能）
-            async function toggleAnnouncement(postId) {
-                const user = await checkAuthStatus();
-                if (!user || !user.is_admin) {
-                    showMessage('没有权限执行此操作', 'error');
-                    return;
-                }
-                
-                try {
-                    // 获取当前状态
-                    const { data: post, error: postError } = await supabase
-                        .from('posts')
-                        .select('is_announcement')
-                        .eq('id', postId)
-                        .single();
-                    
-                    if (postError) throw postError;
-                    
-                    // 切换状态
-                    const { error: updateError } = await supabase
-                        .from('posts')
-                        .update({ is_announcement: !post.is_announcement })
-                        .eq('id', postId);
-                    
-                    if (updateError) throw updateError;
-                    
-                    showMessage(`已${!post.is_announcement ? '设为' : '取消'}公告`, 'success');
-                    
-                    // 刷新显示
-                    if (currentPostId) {
-                        showPostDetail(currentPostId);
-                    } else {
-                        loadPosts(currentPage);
-                    }
-                    
-                } catch (error) {
-                    console.error('设置公告失败:', error);
-                    showMessage('操作失败，请稍后重试', 'error');
-                }
-            }
-            
-            // 用户管理功能
-            async function loadUserManagement() {
-                try {
-                    const { data: users, error } = await supabase
-                        .from('users')
-                        .select('id, username, is_admin')
-                        .order('created_at', { ascending: false });
-                    
-                    if (error) throw error;
-                    
-                    const userList = document.getElementById('userList');
-                    userList.innerHTML = users.map(user => `
-                        <div class="user-item">
-                            <div class="user-item-info">
-                                <span>${user.username}</span>
-                                ${getUserTags(user)}
-                            </div>
-                            <div class="admin-toggle ${user.is_admin ? 'active' : ''}" 
-                                 data-user-id="${user.id}" 
-                                 data-current-state="${user.is_admin}">
-                            </div>
-                        </div>
-                    `).join('');
-                    
-                    // 绑定切换事件
-                    document.querySelectorAll('.admin-toggle').forEach(toggle => {
-                        toggle.addEventListener('click', async function() {
-                            const userId = this.dataset.userId;
-                            const currentState = this.dataset.currentState === 'true';
-                            const newState = !currentState;
-                            
-                            // 更新数据库
-                            const { error } = await supabase
-                                .from('users')
-                                .update({ is_admin: newState })
-                                .eq('id', userId);
-                            
-                            if (error) {
-                                console.error('更新用户权限失败:', error);
-                                showMessage('更新失败', 'error');
-                                return;
-                            }
-                            
-                            // 更新UI
-                            this.classList.toggle('active');
-                            this.dataset.currentState = newState;
-                            
-                            // 更新用户标签
-                            const userItem = this.closest('.user-item');
-                            const userTags = userItem.querySelector('.user-item-info');
-                            const username = userTags.textContent.trim().split(' ')[0];
-                            userTags.innerHTML = `${username} ${getUserTags({username: username, is_admin: newState})}`;
-                            
-                            showMessage('用户权限已更新', 'success');
-                        });
-                    });
-                    
-                } catch (error) {
-                    console.error('加载用户列表失败:', error);
-                }
-            }
             
             // 修复用户数据的工具函数
             async function fixUserData() {
