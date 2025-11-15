@@ -772,6 +772,15 @@
         .admin-toggle.active::after {
             transform: translateX(20px);
         }
+
+        /* @提及样式 */
+        .mention {
+            background: rgba(255, 204, 0, 0.2);
+            color: #ffcc00;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
     </style>
     
     <!-- 引入 Supabase SDK -->
@@ -819,7 +828,7 @@
                                    style="width: 100%; padding: 12px; border: none; border-radius: 10px; 
                                           background: rgba(255, 255, 255, 0.9); font-size: 1rem; margin-bottom: 15px;">
                             
-                            <textarea id="postContent" placeholder="分享您的想法..."></textarea>
+                            <textarea id="postContent" placeholder="分享您的想法...可以使用@提及其他用户"></textarea>
                             
                             <!-- 图片上传区域 -->
                             <div class="image-upload-container">
@@ -889,6 +898,7 @@
                 <!-- 用户管理区域 -->
                 <div id="userManagementSection" class="user-management-section" style="display: none;">
                     <h4 style="margin-bottom: 10px; color: #ffcc00;">用户管理</h4>
+                    <button class="action-btn" id="loadUserManagementBtn" style="width: 100%; margin-bottom: 10px;">加载用户列表</button>
                     <div class="user-list" id="userList">
                         <!-- 用户列表将通过JS动态加载 -->
                     </div>
@@ -993,7 +1003,6 @@
                 // 如果是站长std114514，显示用户管理区域
                 if (user.username === 'std114514') {
                     userManagementSection.style.display = 'block';
-                    loadUserManagement();
                 } else {
                     userManagementSection.style.display = 'none';
                 }
@@ -1053,6 +1062,7 @@
         
         // 获取用户标签HTML
         function getUserTags(user) {
+            if (!user) return '';
             let tags = '';
             if (user.username === 'std114514') {
                 tags += '<span class="user-tag noip-tag">Noip</span>';
@@ -1061,6 +1071,82 @@
                 tags += '<span class="user-tag admin-tag">admin</span>';
             }
             return tags;
+        }
+        
+        // 处理@提及功能
+        function processMentions(text, postId, commentId = null, mentionedBy) {
+            const mentionRegex = /@(\w+)/g;
+            const mentions = [];
+            let match;
+            
+            while ((match = mentionRegex.exec(text)) !== null) {
+                mentions.push(match[1]);
+            }
+            
+            // 去重
+            const uniqueMentions = [...new Set(mentions)];
+            
+            // 为每个提及的用户创建通知
+            uniqueMentions.forEach(async (username) => {
+                try {
+                    // 检查用户是否存在
+                    const { data: user, error } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('username', username)
+                        .single();
+                    
+                    if (error || !user) {
+                        console.log(`用户 ${username} 不存在`);
+                        return;
+                    }
+                    
+                    // 获取帖子标题
+                    let postTitle = '';
+                    if (postId) {
+                        const { data: post } = await supabase
+                            .from('posts')
+                            .select('title')
+                            .eq('id', postId)
+                            .single();
+                        postTitle = post?.title || '无标题';
+                    }
+                    
+                    // 创建提及记录
+                    const { error: mentionError } = await supabase
+                        .from('mentions')
+                        .insert([{
+                            user_id: user.id,
+                            post_id: postId,
+                            comment_id: commentId,
+                            mentioned_by: mentionedBy,
+                            content: text
+                        }]);
+                    
+                    if (mentionError) {
+                        console.error('创建提及记录失败:', mentionError);
+                        return;
+                    }
+                    
+                    // 发送通知
+                    await createNotification(
+                        user.id,
+                        'mention',
+                        '有人提到了你',
+                        `用户在帖子${postTitle}(id=${postId})中提到了你，快去看看吧！`,
+                        postId
+                    );
+                    
+                } catch (error) {
+                    console.error('处理提及失败:', error);
+                }
+            });
+        }
+        
+        // 渲染带@提及的内容
+        function renderContentWithMentions(content) {
+            if (!content) return '';
+            return content.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
         }
         
         document.addEventListener('DOMContentLoaded', function() {
@@ -1100,6 +1186,9 @@
             
             // 顶部登录按钮
             const topLoginBtn = document.getElementById('topLoginBtn');
+            
+            // 用户管理按钮
+            const loadUserManagementBtn = document.getElementById('loadUserManagementBtn');
             
             // 分页相关变量
             let currentPage = 1;
@@ -1152,6 +1241,11 @@
                 } else {
                     window.location.href = '/auth/';
                 }
+            });
+            
+            // 用户管理按钮事件
+            loadUserManagementBtn.addEventListener('click', function() {
+                loadUserManagement();
             });
             
             // 图片上传按钮点击事件
@@ -1455,7 +1549,7 @@
                             <div class="post-title" style="font-weight: bold; font-size: 1.3rem; margin-bottom: 15px; color: #ffcc00;">
                                 ${post.title || '无标题'}
                             </div>
-                            <div class="post-content">${post.content}</div>
+                            <div class="post-content">${renderContentWithMentions(post.content)}</div>
                             
                             ${post.image_url ? `
                                 <div class="post-image">
@@ -1500,7 +1594,7 @@
                             
                             <!-- 评论表单 -->
                             <div class="comment-form">
-                                <textarea class="comment-input" id="detailCommentInput" placeholder="写下你的评论..."></textarea>
+                                <textarea class="comment-input" id="detailCommentInput" placeholder="写下你的评论...可以使用@提及其他用户"></textarea>
                                 
                                 <!-- 评论图片上传区域 -->
                                 <div class="image-upload-container">
@@ -1529,7 +1623,7 @@
                                                     <span class="comment-author">${comment.users.username} ${getUserTags(comment.users)}</span>
                                                     <span class="comment-date">${formatDate(comment.created_at)}</span>
                                                 </div>
-                                                <div class="comment-content">${comment.content}</div>
+                                                <div class="comment-content">${renderContentWithMentions(comment.content)}</div>
                                                 
                                                 ${comment.image_url ? `
                                                     <div class="comment-image">
@@ -1741,7 +1835,7 @@
                         imageUrl = await uploadImage(currentPostImage, 'posts');
                     }
                     
-                    const { error } = await supabase
+                    const { data: post, error } = await supabase
                         .from('posts')
                         .insert([
                             {
@@ -1750,9 +1844,14 @@
                                 content: content,
                                 image_url: imageUrl
                             }
-                        ]);
+                        ])
+                        .select()
+                        .single();
                     
                     if (error) throw error;
+                    
+                    // 处理@提及
+                    processMentions(content, post.id, null, user.id);
                     
                     showMessage('帖子发布成功', 'success');
                     document.getElementById('postTitle').value = '';
@@ -1786,7 +1885,7 @@
                         imageUrl = await uploadImage(currentCommentImage, 'comments');
                     }
                     
-                    const { error } = await supabase
+                    const { data: comment, error } = await supabase
                         .from('comments')
                         .insert([
                             {
@@ -1795,9 +1894,14 @@
                                 content: content,
                                 image_url: imageUrl
                             }
-                        ]);
+                        ])
+                        .select()
+                        .single();
                     
                     if (error) throw error;
+                    
+                    // 处理@提及
+                    processMentions(content, postId, comment.id, user.id);
                     
                     showMessage('评论发布成功', 'success');
                     document.getElementById('detailCommentInput').value = '';
@@ -2123,7 +2227,7 @@
                             admin.id,
                             'new_report',
                             '新的举报',
-                            `用户 ${reporterName} 举报了${targetText} id=${targetId}，理由是${reason}，请及时处理。`,
+                            `用户 ${reporterName} 举报了${targetText} ${targetTitle}(id=${targetId})，理由是${reason}，请及时处理。`,
                             reportId
                         );
                     }
