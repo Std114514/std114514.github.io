@@ -1175,6 +1175,65 @@
         
         // 修改 checkAuthStatus 函数，确保返回的用户对象包含正确的 ID
         async function checkAuthStatus() {
+            async function checkAuthStatus() {
+            // 定义辅助函数
+            function setLoggedInState(user) {
+                const userStatus = document.getElementById('userStatus');
+                const topLoginBtn = document.getElementById('topLoginBtn');
+                const userWelcome = document.getElementById('userWelcome');
+                const userActions = document.getElementById('userActions');
+                const newPostSection = document.getElementById('newPostSection');
+                const loginPrompt = document.getElementById('loginPrompt');
+                const userManagementSection = document.getElementById('userManagementSection');
+                const postsSection = document.querySelector('.posts-section');
+                
+                userStatus.innerHTML = `<span class="welcome-text">${user.username}</span>`;
+                topLoginBtn.textContent = '退出登录';
+                userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
+                userActions.innerHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
+                newPostSection.style.display = 'block';
+                loginPrompt.style.display = 'none';
+                postsSection.style.display = 'block';
+                
+                // 显示用户管理区域（仅站长）
+                if (user.username === 'std114514') {
+                    userManagementSection.style.display = 'block';
+                } else {
+                    userManagementSection.style.display = 'none';
+                }
+            }
+            
+            function setLoggedOutState() {
+                const userStatus = document.getElementById('userStatus');
+                const topLoginBtn = document.getElementById('topLoginBtn');
+                const userWelcome = document.getElementById('userWelcome');
+                const userActions = document.getElementById('userActions');
+                const newPostSection = document.getElementById('newPostSection');
+                const loginPrompt = document.getElementById('loginPrompt');
+                const userManagementSection = document.getElementById('userManagementSection');
+                const postsSection = document.querySelector('.posts-section');
+                const postsList = document.getElementById('postsList');
+                const postDetailView = document.getElementById('postDetailView');
+                const postsListView = document.getElementById('postsListView');
+                
+                userStatus.textContent = '未登录';
+                topLoginBtn.textContent = '登录/注册';
+                userWelcome.textContent = '请先登录';
+                userActions.innerHTML = `<button class="login-btn" onclick="window.location.href='/auth/'">登录/注册</button>`;
+                newPostSection.style.display = 'none';
+                loginPrompt.style.display = 'block';
+                userManagementSection.style.display = 'none';
+                
+                // 隐藏帖子内容
+                postsSection.style.display = 'none';
+                postsList.innerHTML = '';
+                
+                // 确保在帖子详情视图时返回到列表视图
+                if (postDetailView.style.display !== 'none') {
+                    postDetailView.style.display = 'none';
+                    postsListView.style.display = 'block';
+                }
+            }
             try {
                 const userData = localStorage.getItem('userData');
                 
