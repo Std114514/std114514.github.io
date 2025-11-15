@@ -1262,12 +1262,25 @@
             
             // 用户管理按钮
             const loadUserManagementBtn = document.getElementById('loadUserManagementBtn');
+
+            // 移除旧的表单提交事件
+            const postForm = document.getElementById('postForm');
+            const newPostForm = postForm.cloneNode(true);
+            postForm.parentNode.replaceChild(newPostForm, postForm);
+            
+            // 重新绑定新的提交事件
+            newPostForm.addEventListener('submit', submitPost);
+            
+            // 重新绑定举报提交事件
+            const submitReportBtn = document.getElementById('submitReport');
+            submitReportBtn.removeEventListener('click', submitReport);
+            submitReportBtn.addEventListener('click', submitReport);
             
             // 分页相关变量
             let currentPage = 1;
             const postsPerPage = 7;
             let totalPosts = 0;
-
+            
             checkAuthStatus().then(user => {
                     if (user) {
                         // 用户已登录，加载帖子
@@ -1399,16 +1412,27 @@
                     const from = (page - 1) * postsPerPage;
                     const to = from + postsPerPage - 1;
                     
-                    const { data, error } = await supabase
+                    // 如果是第一页，优先显示公告
+                    let query = supabase
                         .from('posts')
                         .select(`
                             *,
                             users:user_id (username, is_admin),
                             post_votes!left(vote_type),
                             comments:comments(count)
-                        `)
-                        .order('created_at', { ascending: false })
-                        .range(from, to);
+                        `);
+                    
+                    if (page === 1) {
+                        // 第一页：公告优先，然后按时间倒序
+                        query = query
+                            .order('is_announcement', { ascending: false })
+                            .order('created_at', { ascending: false });
+                    } else {
+                        // 其他页：只按时间倒序
+                        query = query.order('created_at', { ascending: false });
+                    }
+                    
+                    const { data, error } = await query.range(from, to);
                     
                     if (error) throw error;
                     
@@ -1907,10 +1931,17 @@
             // 发布帖子
             postForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
-                const user = checkAuthStatus();
-                if (!user) {
+    
+                // 直接获取用户数据，避免异步问题
+                const userData = localStorage.getItem('userData');
+                if (!userData) {
                     showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                const user = JSON.parse(userData);
+                if (!user || !user.id) {
+                    showMessage('用户信息无效，请重新登录', 'error');
                     return;
                 }
                 
@@ -1939,6 +1970,8 @@
                         imageUrl = await uploadImage(currentPostImage, 'posts');
                     }
                     
+                    console.log('发布帖子，用户ID:', user.id, '用户名:', user.username);
+                    
                     const { data: post, error } = await supabase
                         .from('posts')
                         .insert([
@@ -1946,13 +1979,19 @@
                                 user_id: user.id,
                                 title: title,
                                 content: content,
-                                image_url: imageUrl
+                                image_url: imageUrl,
+                                likes: 0,
+                                dislikes: 0,
+                                is_announcement: false
                             }
                         ])
                         .select()
                         .single();
                     
-                    if (error) throw error;
+                    if (error) {
+                        console.error('发布帖子失败:', error);
+                        throw error;
+                    }
                     
                     // 处理@提及
                     processMentions(content, post.id, null, user.id);
@@ -1970,15 +2009,22 @@
                     
                 } catch (error) {
                     console.error('发布帖子失败:', error);
-                    showMessage('发布失败，请稍后重试', 'error');
+                    showMessage('发布失败: ' + error.message, 'error');
                 }
             });
             
             // 提交评论
             async function submitComment(postId, content) {
-                const user = checkAuthStatus();
-                if (!user) {
+                // 直接获取用户数据，避免异步问题
+                const userData = localStorage.getItem('userData');
+                if (!userData) {
                     showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                const user = JSON.parse(userData);
+                if (!user || !user.id) {
+                    showMessage('用户信息无效，请重新登录', 'error');
                     return;
                 }
                 
@@ -1989,6 +2035,8 @@
                         imageUrl = await uploadImage(currentCommentImage, 'comments');
                     }
                     
+                    console.log('发布评论，用户ID:', user.id, '用户名:', user.username);
+                    
                     const { data: comment, error } = await supabase
                         .from('comments')
                         .insert([
@@ -1996,13 +2044,18 @@
                                 user_id: user.id,
                                 post_id: postId,
                                 content: content,
-                                image_url: imageUrl
+                                image_url: imageUrl,
+                                likes: 0,
+                                dislikes: 0
                             }
                         ])
                         .select()
                         .single();
                     
-                    if (error) throw error;
+                    if (error) {
+                        console.error('发布评论失败:', error);
+                        throw error;
+                    }
                     
                     // 处理@提及
                     processMentions(content, postId, comment.id, user.id);
@@ -2022,15 +2075,22 @@
                     
                 } catch (error) {
                     console.error('发布评论失败:', error);
-                    showMessage('发布失败，请稍后重试', 'error');
+                    showMessage('发布失败: ' + error.message, 'error');
                 }
             }
             
             // 处理帖子投票
             async function handlePostVote(postId, voteType) {
-                const user = checkAuthStatus();
-                if (!user) {
+                // 直接获取用户数据，避免异步问题
+                const userData = localStorage.getItem('userData');
+                if (!userData) {
                     showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                const user = JSON.parse(userData);
+                if (!user || !user.id) {
+                    showMessage('用户信息无效，请重新登录', 'error');
                     return;
                 }
                 
@@ -2136,9 +2196,16 @@
             
             // 处理评论投票
             async function handleCommentVote(commentId, voteType) {
-                const user = checkAuthStatus();
-                if (!user) {
+                // 直接获取用户数据，避免异步问题
+                const userData = localStorage.getItem('userData');
+                if (!userData) {
                     showMessage('请先登录', 'error');
+                    return;
+                }
+                
+                const user = JSON.parse(userData);
+                if (!user || !user.id) {
+                    showMessage('用户信息无效，请重新登录', 'error');
                     return;
                 }
                 
@@ -2260,8 +2327,20 @@
                     return;
                 }
                 
+                // 直接获取用户数据，避免异步问题
+                const userData = localStorage.getItem('userData');
+                if (!userData) {
+                    showMessage('请先登录', 'error');
+                    return;
+                }
+                
                 try {
-                    const user = checkAuthStatus();
+                    const user = JSON.parse(userData);
+                    
+                    if (!user || !user.id) {
+                        showMessage('用户信息无效，请重新登录', 'error');
+                        return;
+                    }
                     
                     // 获取被举报的内容标题
                     let targetTitle = '';
@@ -2281,7 +2360,9 @@
                         targetTitle = comment?.content?.substring(0, 50) + '...' || '无内容';
                     }
                     
-                    // 创建举报记录
+                    console.log('提交举报，用户ID:', user.id, '用户名:', user.username);
+                    
+                    // 创建举报记录 - 确保所有必需字段都有值
                     const { data, error } = await supabase
                         .from('reports')
                         .insert([{
@@ -2290,12 +2371,18 @@
                             target_type: targetType,
                             target_id: targetId,
                             target_title: targetTitle,
-                            reason: reason
+                            reason: reason,
+                            status: 'pending',
+                            created_at: new Date().toISOString()
                         }])
                         .select()
                         .single();
                     
-                    if (error) throw error;
+                    if (error) {
+                        console.error('举报失败:', error);
+                        showMessage('举报失败: ' + error.message, 'error');
+                        return;
+                    }
                     
                     // 给所有管理员发送通知
                     await sendReportNotificationToAllAdmins(data.id, targetType, targetId, user.username, reason, targetTitle);
