@@ -1173,9 +1173,8 @@
             }
         }
         
-        // 修改 checkAuthStatus 函数，确保返回的用户对象包含正确的 ID
+        // 完全修复的 checkAuthStatus 函数
         async function checkAuthStatus() {
-            async function checkAuthStatus() {
             // 定义辅助函数
             function setLoggedInState(user) {
                 const userStatus = document.getElementById('userStatus');
@@ -1187,19 +1186,21 @@
                 const userManagementSection = document.getElementById('userManagementSection');
                 const postsSection = document.querySelector('.posts-section');
                 
-                userStatus.innerHTML = `<span class="welcome-text">${user.username}</span>`;
-                topLoginBtn.textContent = '退出登录';
-                userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
-                userActions.innerHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
-                newPostSection.style.display = 'block';
-                loginPrompt.style.display = 'none';
-                postsSection.style.display = 'block';
+                if (userStatus) userStatus.innerHTML = `<span class="welcome-text">${user.username}</span>`;
+                if (topLoginBtn) topLoginBtn.textContent = '退出登录';
+                if (userWelcome) userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
+                if (userActions) userActions.innerHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
+                if (newPostSection) newPostSection.style.display = 'block';
+                if (loginPrompt) loginPrompt.style.display = 'none';
+                if (postsSection) postsSection.style.display = 'block';
                 
                 // 显示用户管理区域（仅站长）
-                if (user.username === 'std114514') {
-                    userManagementSection.style.display = 'block';
-                } else {
-                    userManagementSection.style.display = 'none';
+                if (userManagementSection) {
+                    if (user.username === 'std114514') {
+                        userManagementSection.style.display = 'block';
+                    } else {
+                        userManagementSection.style.display = 'none';
+                    }
                 }
             }
             
@@ -1216,86 +1217,116 @@
                 const postDetailView = document.getElementById('postDetailView');
                 const postsListView = document.getElementById('postsListView');
                 
-                userStatus.textContent = '未登录';
-                topLoginBtn.textContent = '登录/注册';
-                userWelcome.textContent = '请先登录';
-                userActions.innerHTML = `<button class="login-btn" onclick="window.location.href='/auth/'">登录/注册</button>`;
-                newPostSection.style.display = 'none';
-                loginPrompt.style.display = 'block';
-                userManagementSection.style.display = 'none';
+                if (userStatus) userStatus.textContent = '未登录';
+                if (topLoginBtn) topLoginBtn.textContent = '登录/注册';
+                if (userWelcome) userWelcome.textContent = '请先登录';
+                if (userActions) userActions.innerHTML = `<button class="login-btn" onclick="window.location.href='/auth/'">登录/注册</button>`;
+                if (newPostSection) newPostSection.style.display = 'none';
+                if (loginPrompt) loginPrompt.style.display = 'block';
+                if (userManagementSection) userManagementSection.style.display = 'none';
                 
                 // 隐藏帖子内容
-                postsSection.style.display = 'none';
-                postsList.innerHTML = '';
+                if (postsSection) postsSection.style.display = 'none';
+                if (postsList) postsList.innerHTML = '';
                 
                 // 确保在帖子详情视图时返回到列表视图
-                if (postDetailView.style.display !== 'none') {
+                if (postDetailView && postDetailView.style.display !== 'none') {
                     postDetailView.style.display = 'none';
-                    postsListView.style.display = 'block';
+                    if (postsListView) postsListView.style.display = 'block';
                 }
             }
+        
             try {
                 const userData = localStorage.getItem('userData');
                 
-                if (userData) {
-                    const user = JSON.parse(userData);
+                // 如果没有用户数据，直接返回 null
+                if (!userData) {
+                    setLoggedOutState();
+                    return null;
+                }
+                
+                let user;
+                try {
+                    user = JSON.parse(userData);
+                } catch (parseError) {
+                    console.error('解析用户数据失败:', parseError);
+                    localStorage.removeItem('userData');
+                    setLoggedOutState();
+                    return null;
+                }
+                
+                // 检查用户数据是否包含必要的字段
+                if (!user || !user.id || !user.username) {
+                    console.error('用户数据不完整:', user);
+                    localStorage.removeItem('userData');
+                    setLoggedOutState();
+                    return null;
+                }
+                
+                try {
+                    // 从服务器获取最新的用户信息
+                    const { data: userInfo, error } = await supabase
+                        .from('users')
+                        .select('id, username, is_admin')
+                        .eq('id', user.id)
+                        .single();
                     
-                    // 检查用户数据是否包含必要的字段
-                    if (!user || !user.id || !user.username) {
-                        console.error('用户数据不完整:', user);
+                    if (error) {
+                        console.error('获取用户信息失败:', error);
+                        // 使用本地存储的用户信息，添加默认的 is_admin 字段
+                        const userWithDefaultAdmin = {
+                            ...user,
+                            is_admin: user.is_admin || false
+                        };
+                        
+                        // 强制站长 std114514 拥有管理员权限
+                        if (userWithDefaultAdmin.username === 'std114514') {
+                            userWithDefaultAdmin.is_admin = true;
+                        }
+                        
+                        setLoggedInState(userWithDefaultAdmin);
+                        return userWithDefaultAdmin;
+                    }
+                    
+                    if (userInfo) {
+                        // 更新用户信息，确保 ID 正确
+                        const updatedUser = {
+                            id: userInfo.id,
+                            username: userInfo.username,
+                            is_admin: userInfo.is_admin || false
+                        };
+                        
+                        // 强制站长 std114514 拥有管理员权限
+                        if (updatedUser.username === 'std114514') {
+                            updatedUser.is_admin = true;
+                        }
+                        
+                        localStorage.setItem('userData', JSON.stringify(updatedUser));
+                        setLoggedInState(updatedUser);
+                        return updatedUser;
+                    } else {
+                        // 用户不存在于服务器
+                        console.error('用户不存在于服务器');
                         localStorage.removeItem('userData');
                         setLoggedOutState();
                         return null;
                     }
                     
-                    try {
-                        // 从服务器获取最新的用户信息
-                        const { data: userInfo, error } = await supabase
-                            .from('users')
-                            .select('id, username, is_admin')
-                            .eq('id', user.id)
-                            .single();
-                        
-                        if (error) {
-                            console.error('获取用户信息失败:', error);
-                            // 使用本地存储的用户信息
-                            if (user.username === 'std114514') {
-                                user.is_admin = true;
-                            }
-                            setLoggedInState(user);
-                            return user;
-                        }
-                        
-                        if (userInfo) {
-                            // 更新用户信息，确保 ID 正确
-                            const updatedUser = {
-                                id: userInfo.id, // 确保使用服务器返回的 ID
-                                username: userInfo.username,
-                                is_admin: userInfo.is_admin
-                            };
-                            
-                            // 强制站长 std114514 拥有管理员权限
-                            if (updatedUser.username === 'std114514') {
-                                updatedUser.is_admin = true;
-                            }
-                            
-                            localStorage.setItem('userData', JSON.stringify(updatedUser));
-                            setLoggedInState(updatedUser);
-                            return updatedUser;
-                        }
-                        
-                    } catch (error) {
-                        console.error('验证用户信息失败:', error);
-                        // 使用本地存储的用户信息
-                        if (user.username === 'std114514') {
-                            user.is_admin = true;
-                        }
-                        setLoggedInState(user);
-                        return user;
+                } catch (error) {
+                    console.error('验证用户信息失败:', error);
+                    // 使用本地存储的用户信息，添加默认的 is_admin 字段
+                    const userWithDefaultAdmin = {
+                        ...user,
+                        is_admin: user.is_admin || false
+                    };
+                    
+                    // 强制站长 std114514 拥有管理员权限
+                    if (userWithDefaultAdmin.username === 'std114514') {
+                        userWithDefaultAdmin.is_admin = true;
                     }
-                } else {
-                    setLoggedOutState();
-                    return null;
+                    
+                    setLoggedInState(userWithDefaultAdmin);
+                    return userWithDefaultAdmin;
                 }
             } catch (error) {
                 console.error('检查认证状态失败:', error);
@@ -1311,13 +1342,13 @@
             window.location.href = '/';
         }
 
-        // 修改权限检查函数
+        // 修复权限检查函数
         function checkAdminPermission(user) {
             if (!user) return false;
             // 站长 std114514 永远有管理员权限
             if (user.username === 'std114514') return true;
-            // 其他用户检查 is_admin 字段
-            return user.is_admin === true;
+            // 其他用户检查 is_admin 字段，如果没有该字段则默认为 false
+            return Boolean(user.is_admin);
         }
         
         // 上传图片到Supabase存储
@@ -2841,7 +2872,20 @@
                 }
             }
             
-            
+            // 测试代码
+            async function testAuthStatus() {
+                console.log('测试认证状态...');
+                const user = await checkAuthStatus();
+                console.log('用户对象:', user);
+                console.log('localStorage 中的用户数据:', localStorage.getItem('userData'));
+                
+                if (user) {
+                    console.log('用户已登录:', user.username);
+                    console.log('管理员权限:', checkAdminPermission(user));
+                } else {
+                    console.log('用户未登录');
+                }
+            }
             
             // 事件绑定
             // 通知铃铛点击事件
