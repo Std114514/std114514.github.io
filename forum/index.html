@@ -1524,10 +1524,7 @@
 
         // 修复权限检查函数
         function checkAdminPermission(user) {
-            if (!user) {
-                return false;
-                console.error('!!!');
-            }
+            if (!user) return false;
             // 站长 std114514 永远有管理员权限
             if (user.username === 'std114514') return true;
             // 其他用户检查 is_admin 字段，如果没有该字段则默认为 false
