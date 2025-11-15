@@ -956,7 +956,7 @@
             }
         }
         
-        // 检查登录状态
+        // 在 checkAuthStatus 函数中，修改用户数据处理部分
         async function checkAuthStatus() {
             const userData = localStorage.getItem('userData');
             const userStatus = document.getElementById('userStatus');
@@ -968,56 +968,76 @@
             const userManagementSection = document.getElementById('userManagementSection');
             
             if (userData) {
-                const user = JSON.parse(userData);
-                
-                // 从服务器获取最新的用户信息，包括管理员状态
                 try {
-                    const { data: userInfo, error } = await supabase
-                        .from('users')
-                        .select('is_admin')
-                        .eq('id', user.id)
-                        .single();
+                    const user = JSON.parse(userData);
                     
-                    if (!error && userInfo) {
-                        user.is_admin = userInfo.is_admin;
-                        localStorage.setItem('userData', JSON.stringify(user));
+                    // 检查用户数据是否包含必要的字段
+                    if (!user || !user.id) {
+                        console.error('用户数据不完整:', user);
+                        localStorage.removeItem('userData');
+                        location.reload();
+                        return null;
                     }
+                    
+                    // 从服务器获取最新的用户信息，包括管理员状态
+                    try {
+                        const { data: userInfo, error } = await supabase
+                            .from('users')
+                            .select('id, username, is_admin')
+                            .eq('id', user.id)
+                            .single();
+                        
+                        if (!error && userInfo) {
+                            // 更新用户信息
+                            user.is_admin = userInfo.is_admin;
+                            user.username = userInfo.username; // 确保用户名是最新的
+                            localStorage.setItem('userData', JSON.stringify(user));
+                            
+                            // 更新顶部用户信息区域
+                            userStatus.innerHTML = `<span class="welcome-text">欢迎回来，${user.username}</span>`;
+                            topLoginBtn.textContent = '退出登录';
+                            
+                            // 更新侧边栏用户信息
+                            userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
+                            
+                            let actionsHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
+                            userActions.innerHTML = actionsHTML;
+                            
+                            // 显示发帖区域
+                            newPostSection.style.display = 'block';
+                            loginPrompt.style.display = 'none';
+                            
+                            // 如果是站长std114514，显示用户管理区域
+                            if (user.username === 'std114514') {
+                                userManagementSection.style.display = 'block';
+                            } else {
+                                userManagementSection.style.display = 'none';
+                            }
+                            
+                            return user;
+                        } else {
+                            throw new Error('无法获取用户信息');
+                        }
+                    } catch (error) {
+                        console.error('获取用户信息失败:', error);
+                        // 如果获取用户信息失败，清除本地存储并重新加载
+                        localStorage.removeItem('userData');
+                        location.reload();
+                        return null;
+                    }
+                    
                 } catch (error) {
-                    console.error('获取用户信息失败:', error);
+                    console.error('解析用户数据失败:', error);
+                    localStorage.removeItem('userData');
+                    location.reload();
+                    return null;
                 }
-                
-                // 更新顶部用户信息区域
-                userStatus.innerHTML = `<span class="welcome-text">欢迎回来，${user.username}</span>`;
-                topLoginBtn.textContent = '退出登录';
-                
-                // 更新侧边栏用户信息
-                userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
-                
-                let actionsHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
-                userActions.innerHTML = actionsHTML;
-                
-                // 显示发帖区域
-                newPostSection.style.display = 'block';
-                loginPrompt.style.display = 'none';
-                
-                // 如果是站长std114514，显示用户管理区域
-                if (user.username === 'std114514') {
-                    userManagementSection.style.display = 'block';
-                } else {
-                    userManagementSection.style.display = 'none';
-                }
-                
-                return user;
             } else {
-                // 更新顶部用户信息区域
+                // 未登录状态的处理
                 userStatus.textContent = '未登录';
                 topLoginBtn.textContent = '登录/注册';
-                
-                // 更新侧边栏用户信息
                 userWelcome.textContent = '请先登录';
                 userActions.innerHTML = `<button class="login-btn" onclick="window.location.href='/auth/'">登录/注册</button>`;
-                
-                // 隐藏发帖区域
                 newPostSection.style.display = 'none';
                 loginPrompt.style.display = 'block';
                 userManagementSection.style.display = 'none';
@@ -1026,12 +1046,11 @@
             }
         }
         
-        // 退出登录
+        // 修改退出登录函数，确保完全清理
         function logout() {
             localStorage.removeItem('userData');
-            checkAuthStatus();
-            // 刷新页面以更新状态
-            location.reload();
+            // 重定向到首页而不是刷新，确保完全清除状态
+            window.location.href = '/';
         }
         
         // 上传图片到Supabase存储
@@ -1199,6 +1218,16 @@
             checkAuthStatus();
             // 检查URL参数
             checkUrlParams();
+
+            // 延迟加载通知，确保用户状态已确认
+            setTimeout(() => {
+                loadNotifications();
+            }, 1000);
+            
+            // 定期刷新通知（每30秒）
+            setInterval(() => {
+                loadNotifications();
+            }, 10000);
             
             // 分页事件绑定
             document.getElementById('prevPage').addEventListener('click', function() {
@@ -2499,11 +2528,13 @@
                 }
             }
             
-            // 通知系统功能
-            // 加载通知
+            // 修改 loadNotifications 函数，添加更严格的错误处理
             async function loadNotifications() {
-                const user = checkAuthStatus();
-                if (!user) return;
+                const user = await checkAuthStatus(); // 等待异步函数完成
+                if (!user || !user.id) {
+                    console.log('用户未登录或用户ID不存在，跳过加载通知');
+                    return;
+                }
                 
                 try {
                     const { data, error } = await supabase
@@ -2519,6 +2550,7 @@
                     updateNotificationBadge(data || []);
                 } catch (error) {
                     console.error('加载通知失败:', error);
+                    // 不显示错误消息给用户，避免干扰
                 }
             }
             
