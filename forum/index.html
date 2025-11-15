@@ -956,84 +956,121 @@
             }
         }
         
-        // 在 checkAuthStatus 函数中，修改用户数据处理部分
+        // 修改 checkAuthStatus 函数，彻底修复权限问题
         async function checkAuthStatus() {
-            const userData = localStorage.getItem('userData');
-            const userStatus = document.getElementById('userStatus');
-            const topLoginBtn = document.getElementById('topLoginBtn');
-            const userWelcome = document.getElementById('userWelcome');
-            const userActions = document.getElementById('userActions');
-            const newPostSection = document.getElementById('newPostSection');
-            const loginPrompt = document.getElementById('loginPrompt');
-            const userManagementSection = document.getElementById('userManagementSection');
-            
-            if (userData) {
-                try {
+            try {
+                const userData = localStorage.getItem('userData');
+                const userStatus = document.getElementById('userStatus');
+                const topLoginBtn = document.getElementById('topLoginBtn');
+                const userWelcome = document.getElementById('userWelcome');
+                const userActions = document.getElementById('userActions');
+                const newPostSection = document.getElementById('newPostSection');
+                const loginPrompt = document.getElementById('loginPrompt');
+                const userManagementSection = document.getElementById('userManagementSection');
+                const postsSection = document.querySelector('.posts-section');
+                
+                if (userData) {
                     const user = JSON.parse(userData);
                     
                     // 检查用户数据是否包含必要的字段
-                    if (!user || !user.id) {
+                    if (!user || !user.id || !user.username) {
                         console.error('用户数据不完整:', user);
                         localStorage.removeItem('userData');
-                        location.reload();
+                        // 显示未登录状态
+                        setLoggedOutState();
                         return null;
                     }
                     
-                    // 从服务器获取最新的用户信息，包括管理员状态
                     try {
+                        // 从服务器获取最新的用户信息
                         const { data: userInfo, error } = await supabase
                             .from('users')
                             .select('id, username, is_admin')
                             .eq('id', user.id)
                             .single();
                         
-                        if (!error && userInfo) {
+                        if (error) {
+                            console.error('获取用户信息失败:', error);
+                            // 使用本地存储的用户信息，但标记为需要重新验证
+                            user.needsRefresh = true;
+                            localStorage.setItem('userData', JSON.stringify(user));
+                        } else if (userInfo) {
                             // 更新用户信息
                             user.is_admin = userInfo.is_admin;
-                            user.username = userInfo.username; // 确保用户名是最新的
+                            user.username = userInfo.username;
+                            user.needsRefresh = false;
                             localStorage.setItem('userData', JSON.stringify(user));
-                            
-                            // 更新顶部用户信息区域
-                            userStatus.innerHTML = `<span class="welcome-text">欢迎回来，${user.username}</span>`;
-                            topLoginBtn.textContent = '退出登录';
-                            
-                            // 更新侧边栏用户信息
-                            userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
-                            
-                            let actionsHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
-                            userActions.innerHTML = actionsHTML;
-                            
-                            // 显示发帖区域
-                            newPostSection.style.display = 'block';
-                            loginPrompt.style.display = 'none';
-                            
-                            // 如果是站长std114514，显示用户管理区域
-                            if (user.username === 'std114514') {
-                                userManagementSection.style.display = 'block';
-                            } else {
-                                userManagementSection.style.display = 'none';
-                            }
-                            
-                            return user;
-                        } else {
-                            throw new Error('无法获取用户信息');
                         }
+                        
+                        // 强制站长 std114514 拥有管理员权限
+                        if (user.username === 'std114514') {
+                            user.is_admin = true;
+                        }
+                        
+                        // 设置登录状态
+                        setLoggedInState(user);
+                        return user;
+                        
                     } catch (error) {
-                        console.error('获取用户信息失败:', error);
-                        // 如果获取用户信息失败，清除本地存储并重新加载
-                        localStorage.removeItem('userData');
-                        location.reload();
-                        return null;
+                        console.error('验证用户信息失败:', error);
+                        // 使用本地存储的用户信息
+                        if (user.username === 'std114514') {
+                            user.is_admin = true;
+                        }
+                        setLoggedInState(user);
+                        return user;
                     }
-                    
-                } catch (error) {
-                    console.error('解析用户数据失败:', error);
-                    localStorage.removeItem('userData');
-                    location.reload();
+                } else {
+                    setLoggedOutState();
                     return null;
                 }
-            } else {
-                // 未登录状态的处理
+            } catch (error) {
+                console.error('检查认证状态失败:', error);
+                setLoggedOutState();
+                return null;
+            }
+            
+            // 设置登录状态的辅助函数
+            function setLoggedInState(user) {
+                const userStatus = document.getElementById('userStatus');
+                const topLoginBtn = document.getElementById('topLoginBtn');
+                const userWelcome = document.getElementById('userWelcome');
+                const userActions = document.getElementById('userActions');
+                const newPostSection = document.getElementById('newPostSection');
+                const loginPrompt = document.getElementById('loginPrompt');
+                const userManagementSection = document.getElementById('userManagementSection');
+                const postsSection = document.querySelector('.posts-section');
+                
+                userStatus.innerHTML = `<span class="welcome-text">${user.username}</span>`;
+                topLoginBtn.textContent = '退出登录';
+                userWelcome.innerHTML = `欢迎回来，<strong>${user.username}</strong>`;
+                userActions.innerHTML = `<button class="login-btn" onclick="logout()">退出登录</button>`;
+                newPostSection.style.display = 'block';
+                loginPrompt.style.display = 'none';
+                postsSection.style.display = 'block';
+                
+                // 显示用户管理区域（仅站长）
+                if (user.username === 'std114514') {
+                    userManagementSection.style.display = 'block';
+                } else {
+                    userManagementSection.style.display = 'none';
+                }
+            }
+            
+            // 设置未登录状态的辅助函数
+            function setLoggedOutState() {
+                const userStatus = document.getElementById('userStatus');
+                const topLoginBtn = document.getElementById('topLoginBtn');
+                const userWelcome = document.getElementById('userWelcome');
+                const userActions = document.getElementById('userActions');
+                const newPostSection = document.getElementById('newPostSection');
+                const loginPrompt = document.getElementById('loginPrompt');
+                const userManagementSection = document.getElementById('userManagementSection');
+                const postsSection = document.querySelector('.posts-section');
+                const postsList = document.getElementById('postsList');
+                const postDetailView = document.getElementById('postDetailView');
+                const postsListView = document.getElementById('postsListView');
+                
                 userStatus.textContent = '未登录';
                 topLoginBtn.textContent = '登录/注册';
                 userWelcome.textContent = '请先登录';
@@ -1042,7 +1079,15 @@
                 loginPrompt.style.display = 'block';
                 userManagementSection.style.display = 'none';
                 
-                return null;
+                // 隐藏帖子内容
+                postsSection.style.display = 'none';
+                postsList.innerHTML = '';
+                
+                // 确保在帖子详情视图时返回到列表视图
+                if (postDetailView.style.display !== 'none') {
+                    postDetailView.style.display = 'none';
+                    postsListView.style.display = 'block';
+                }
             }
         }
         
@@ -1051,6 +1096,15 @@
             localStorage.removeItem('userData');
             // 重定向到首页而不是刷新，确保完全清除状态
             window.location.href = '/';
+        }
+
+        // 修改权限检查函数
+        function checkAdminPermission(user) {
+            if (!user) return false;
+            // 站长 std114514 永远有管理员权限
+            if (user.username === 'std114514') return true;
+            // 其他用户检查 is_admin 字段
+            return user.is_admin === true;
         }
         
         // 上传图片到Supabase存储
@@ -1213,9 +1267,18 @@
             let currentPage = 1;
             const postsPerPage = 20;
             let totalPosts = 0;
-            
-            // 初始化登录状态
-            checkAuthStatus();
+
+            checkAuthStatus().then(user => {
+                    if (user) {
+                        // 用户已登录，加载帖子
+                        loadPosts(1);
+                        loadNotifications();
+                    } else {
+                        // 用户未登录，显示登录提示
+                        const postsSection = document.querySelector('.posts-section');
+                        postsSection.style.display = 'none';
+                    }
+                });
             // 检查URL参数
             checkUrlParams();
 
@@ -1399,10 +1462,17 @@
                 }
             }
             
-            // 修改 renderPosts 函数，确保正确获取用户信息
+            // 修改渲染帖子列表的函数
             async function renderPosts(posts) {
-                // 等待异步获取用户信息
                 const user = await checkAuthStatus();
+                const isAdmin = checkAdminPermission(user);
+                const postsList = document.getElementById('postsList');
+                
+                // 如果未登录，不渲染帖子
+                if (!user) {
+                    postsList.innerHTML = '';
+                    return;
+                }
                 
                 if (!posts || posts.length === 0) {
                     postsList.innerHTML = '<div class="post"><div class="post-content">暂无帖子，快来发表第一个帖子吧！</div></div>';
@@ -1428,12 +1498,9 @@
                                 <span class="post-date">${formatDate(post.created_at)}</span>
                                 ${post.is_announcement ? '<span class="announcement-badge">公告</span>' : ''}
                             </div>
-                            <!-- 修改这里：只显示标题 -->
                             <div class="post-title" style="font-weight: bold; font-size: 1.1rem; margin-bottom: 10px;">
                                 ${post.title || '无标题'}
                             </div>
-                            
-                            <!-- 主页不显示图片 -->
                             
                             <!-- 帖子操作区域 -->
                             <div class="post-actions">
@@ -1457,7 +1524,7 @@
                                     </button>
                                     
                                     <!-- 管理员功能 -->
-                                    ${user && user.is_admin ? `
+                                    ${isAdmin ? `
                                         <button class="action-btn delete-btn" data-post-id="${post.id}" data-type="post">
                                             🗑️ 删除
                                         </button>
@@ -1516,7 +1583,6 @@
                     btn.addEventListener('click', function(e) {
                         e.stopPropagation();
                         const targetId = this.dataset.postId;
-                        const targetType = this.dataset.type;
                         deletePost(targetId);
                     });
                 });
@@ -1531,8 +1597,14 @@
                 });
             }
             
-            // 修改 showPostDetail 函数中的用户获取部分
+            // 修改显示帖子详情的函数，添加登录检查
             async function showPostDetail(postId) {
+                const user = await checkAuthStatus();
+                if (!user) {
+                    showMessage('请先登录查看帖子详情', 'error');
+                    return;
+                }
+                
                 currentPostId = postId;
                 
                 // 更新URL参数
@@ -1565,8 +1637,7 @@
                     
                     if (commentsError) throw commentsError;
                     
-                    // 等待异步获取用户信息
-                    const user = await checkAuthStatus();
+                    const isAdmin = checkAdminPermission(user);
                     const userVote = user ? post.post_votes?.find(vote => vote.user_id === user.id) : null;
                     
                     // 渲染帖子详情
@@ -1577,7 +1648,6 @@
                                 <span class="post-date">${formatDate(post.created_at)}</span>
                                 ${post.is_announcement ? '<span class="announcement-badge">公告</span>' : ''}
                             </div>
-                            <!-- 修改这里：显示帖子标题 -->
                             <div class="post-title" style="font-weight: bold; font-size: 1.3rem; margin-bottom: 15px; color: #ffcc00;">
                                 ${post.title || '无标题'}
                             </div>
@@ -1608,7 +1678,7 @@
                                     </button>
                                     
                                     <!-- 管理员功能 -->
-                                    ${user && user.is_admin ? `
+                                    ${isAdmin ? `
                                         <button class="action-btn delete-btn" data-post-id="${post.id}" data-type="post">
                                             🗑️ 删除
                                         </button>
@@ -1648,6 +1718,7 @@
                                 ${comments && comments.length > 0 ? 
                                     comments.map(comment => {
                                         const commentUserVote = user ? comment.comment_votes?.find(vote => vote.user_id === user.id) : null;
+                                        const commentIsAdmin = checkAdminPermission({username: comment.users.username, is_admin: comment.users.is_admin});
                                         
                                         return `
                                             <div class="comment" data-comment-id="${comment.id}">
@@ -1678,7 +1749,7 @@
                                                         <button class="action-btn report-btn" data-comment-id="${comment.id}" data-type="comment">
                                                             ⚠️ 举报
                                                         </button>
-                                                        ${user && user.is_admin ? `
+                                                        ${isAdmin ? `
                                                             <button class="action-btn delete-btn" data-comment-id="${comment.id}" data-type="comment">
                                                                 🗑️ 删除
                                                             </button>
