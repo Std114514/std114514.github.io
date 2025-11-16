@@ -945,7 +945,7 @@
         let currentCommentImage = null;
 
 // 显示举报弹窗
-            function showReportModal(targetId, targetType) {
+            async function showReportModal(targetId, targetType) {
                 const user = await checkAuthStatus();
                 if (!user) {
                     showMessage('请先登录', 'error');
