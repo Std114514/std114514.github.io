@@ -2,6 +2,7 @@
 <html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     
     <title>whk班主任模拟器</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --cq-red: #e63946;
@@ -195,9 +196,27 @@
         text-align: center;}
         .name-input:focus { border-color: var(--accent);
         box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        /* 排行榜表格 */
+        .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .leaderboard-table th { background: var(--primary); color: white; padding: 10px; }
+        .leaderboard-table td { padding: 8px; border-bottom: 1px solid var(--border); text-align: center; }
+        .leaderboard-table tr:last-child td { border-bottom: none; }
+        .leaderboard-table tr:nth-child(even) { background: #f8fafc; }
+        .rank-1 { font-weight: bold; color: #f59e0b; }
+        .rank-2 { font-weight: bold; color: #94a3b8; }
+        .rank-3 { font-weight: bold; color: #b45309; }
     </style>
 </head>
 <body>
+
+<script>
+    const SUPABASE_URL = 'https://xwrgpngwmdjbmsziuodl.supabase.co';   // <-- 替换为你的URL
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3cmdwbmd3bWRqYm1zeml1b2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNDUzNjksImV4cCI6MjA3NTcyMTM2OX0.kVpcSCmmwcLcs60C0BjPxyXFDxdl3V4ny-vutKsnbV8';                 // <-- 替换为你的anon key
+    const supabase = supabaseClient ? supabaseClient : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // 注意: 如果上方CDN变量名不是supabaseClient，直接用supabase.createClient
+    // 为了兼容，使用全局 supabase
+    window._supabase = supabase;
+</script>
 
 <div id="start-screen" class="overlay">
     <div class="modal-box" style="max-width: 700px; border-top: 6px solid var(--accent);">
@@ -208,6 +227,11 @@
             请合理安排他们的学习、测试与身心健康。
         </div>
 
+        <div style="margin-bottom: 20px; text-align: left;">
+            <label style="font-weight: bold; display: block; margin-bottom: 5px;">班主任ID：</label>
+            <input type="text" id="teacher-name" placeholder="输入你的ID" value="Anonymous" class="name-input" style="width: 100%;">
+        </div>
+        
         <div style="margin-bottom: 20px; padding: 15px; border: 1px dashed var(--border); border-radius: 8px; background: white;">
             <h3 style="text-align: center; margin-top: 0; margin-bottom: 10px; color: var(--primary);">为你的6名神仙命名（留空则默认）：</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
@@ -418,13 +442,23 @@
         <div id="ending-player" style="background:#fef9e7; padding:20px; border:2px solid #f59e0b; border-radius:8px; margin-bottom:30px; text-align:left;"></div>
         <h3 style="color:var(--primary); border-bottom: 2px solid var(--accent); padding-bottom:5px; text-align:left;">🗺️ 全国大一新生蹭饭地图</h3>
         <div id="ending-cengfan" class="cengfan-grid" style="text-align:left; margin-bottom:30px;"></div>
+        <h3 style="color:var(--primary); border-bottom: 2px solid var(--accent); padding-bottom:5px; text-align:left;">🏆 班主任排行榜 (2个月内的前37名)</h3>
+        <div id="leaderboard-list" style="max-height: 350px; overflow-y: auto; margin-bottom: 30px; background: #f8fafc; border-radius: 12px; padding: 10px; border: 1px solid var(--border);">
+            <p style="text-align:center; color: #64748b;">加载排行榜中...</p>
+        </div>
         <div style="display:flex; gap:15px; justify-content:center;">
             <button style="padding:15px 30px; background:var(--secondary); color:white; font-size:1.2em;" onclick="Game.returnToClass()">回到班级 (彩蛋)</button>
             <button style="padding:15px 30px; background:var(--primary); color:white; font-size:1.2em;" onclick="location.reload()">再带一届</button>
         </div>
     </div>
 </div>
-
+<div id="leaderboard-modal" class="overlay hidden">
+    <div class="modal-box" style="max-width: 800px;">
+        <h2 class="modal-title" style="text-align:center;">🏆 班主任排行榜 (2个月内的前37名)</h2>
+        <div id="leaderboard-modal-list" style="max-height: 60vh; overflow-y: auto; margin: 20px 0;"></div>
+        <button style="width:100%; padding:15px; background:var(--primary); color:white;" onclick="UI.closeModal('leaderboard-modal')">关闭</button>
+    </div>
+</div>
 <script>
 /** ================== 核心字典与配置 ================== */
 const CONFIG = {
@@ -481,6 +515,7 @@ let State = {
     fac: { desk: 0, tech: 0, ac: 0 },
     tempAlloc: {},
     students: []
+    teacherName: 'Anonymous'
 };
 const Game = {
     start(diff) {
@@ -517,6 +552,99 @@ const Game = {
         this.updateUI();
     },
 
+
+const Leaderboard = {
+        // 上传班级均分
+        async uploadScore(teacherName, avgScore) {
+            try {
+                const { error } = await supabase
+                    .from('class_scores')
+                    .insert([{ 
+                        player_name: teacherName, 
+                        avg_score: avgScore,
+                        created_at: new Date().toISOString()
+                    }]);
+                if (error) console.warn('上传失败:', error.message);
+            } catch (e) {
+                console.warn('上传异常:', e);
+            }
+        },
+        // 获取排行榜 (近2个月，前37，同分按时间早优先)
+        async fetchLeaderboard(limit = 37) {
+            try {
+                const twoMonthsAgo = new Date();
+                twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+                const { data, error } = await supabase
+                    .from('class_scores')
+                    .select('player_name, avg_score, created_at')
+                    .gte('created_at', twoMonthsAgo.toISOString())
+                    .order('avg_score', { ascending: false })
+                    .order('created_at', { ascending: true })
+                    .limit(limit);
+                if (error) throw error;
+                return data || [];
+            } catch (e) {
+                console.warn('获取排行榜失败:', e);
+                return [];
+            }
+        },
+        // 渲染排行榜到指定容器
+        async renderTo(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '<p style="text-align:center; color: #64748b;">加载中...</p>';
+            const list = await this.fetchLeaderboard(37);
+            if (list.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color: #64748b;">暂无近2个月的记录</p>';
+                return;
+            }
+            let html = '<table class="leaderboard-table"><tr><th>排名</th><th>班主任</th><th>班级均分</th><th>记录时间</th></tr>';
+            list.forEach((item, idx) => {
+                const date = new Date(item.created_at).toLocaleDateString('zh-CN', { month:'2-digit', day:'2-digit' });
+                const rankClass = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : ''));
+                html += `<tr><td class="${rankClass}">${idx+1}</td><td>${item.player_name}</td><td>${Math.round(item.avg_score)}</td><td>${date}</td></tr>`;
+            });
+            html += '</table>';
+            container.innerHTML = html;
+        }
+    };
+
+    const originalStart = Game.start;
+    Game.start = function(diff) {
+        // 读取班主任姓名
+        const teacherInput = document.getElementById('teacher-name');
+        State.teacherName = teacherInput ? teacherInput.value.trim() || '匿名' : '匿名';
+        // 调用原start
+        originalStart.call(this, diff);
+    };
+
+    // ================== 修改 Game.showEnding 上传并显示排行榜 ==================
+    const originalShowEnding = Game.showEnding;
+    Game.showEnding = function() {
+        // 先执行原有逻辑（显示蹭饭地图等）
+        originalShowEnding.call(this);
+        // 计算班级均分
+        let total = 0;
+        State.students.forEach(s => {
+            const lastScore = s.history.scores[s.history.scores.length - 1];
+            total += lastScore || 0;
+        });
+        const avgScore = total / State.students.length;
+        // 异步上传分数（不阻塞）
+        Leaderboard.uploadScore(State.teacherName, avgScore);
+        // 显示排行榜
+        Leaderboard.renderTo('leaderboard-list');
+    };
+
+    // ================== UI 扩展：显示独立排行榜 ==================
+    UI.showLeaderboardModal = function() {
+        const modal = document.getElementById('leaderboard-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            Leaderboard.renderTo('leaderboard-modal-list');
+        }
+    };
+    
     shuffleArray(arr) {
         let res = [...arr];
         for (let i = res.length - 1; i > 0; i--) {
