@@ -210,12 +210,12 @@
 <body>
 
 <script>
-    const SUPABASE_URL = 'https://xwrgpngwmdjbmsziuodl.supabase.co';   // <-- 替换为你的URL
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3cmdwbmd3bWRqYm1zeml1b2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNDUzNjksImV4cCI6MjA3NTcyMTM2OX0.kVpcSCmmwcLcs60C0BjPxyXFDxdl3V4ny-vutKsnbV8';                 // <-- 替换为你的anon key
-    const supabase = supabaseClient ? supabaseClient : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    // 注意: 如果上方CDN变量名不是supabaseClient，直接用supabase.createClient
-    // 为了兼容，使用全局 supabase
-    window._supabase = supabase;
+    // 设置 Supabase 客户端（避免重复声明）
+    const SUPABASE_URL = 'https://xwrgpngwmdjbmsziuodl.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3cmdwbmd3bWRqYm1zeml1b2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNDUzNjksImV4cCI6MjA3NTcyMTM2OX0.kVpcSCmmwcLcs60C0BjPxyXFDxdl3V4ny-vutKsnbV8';
+    
+    // 创建 Supabase 客户端实例，并挂载到 window 上供全局使用
+    window._supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 </script>
 
 <div id="start-screen" class="overlay">
@@ -1321,38 +1321,37 @@ let lv = State.fac[id];
 const Leaderboard = {
         // 上传班级均分
         async uploadScore(teacherName, avgScore) {
-            try {
-                const { error } = await supabase
-                    .from('class_scores')
-                    .insert([{ 
-                        player_name: teacherName, 
-                        avg_score: avgScore,
-                        created_at: new Date().toISOString()
-                    }]);
-                if (error) console.warn('上传失败:', error.message);
-            } catch (e) {
-                console.warn('上传异常:', e);
-            }
-        },
-        // 获取排行榜 (近2个月，前37，同分按时间早优先)
-        async fetchLeaderboard(limit = 37) {
-            try {
-                const twoMonthsAgo = new Date();
-                twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-                const { data, error } = await supabase
-                    .from('class_scores')
-                    .select('player_name, avg_score, created_at')
-                    .gte('created_at', twoMonthsAgo.toISOString())
-                    .order('avg_score', { ascending: false })
-                    .order('created_at', { ascending: true })
-                    .limit(limit);
-                if (error) throw error;
-                return data || [];
-            } catch (e) {
-                console.warn('获取排行榜失败:', e);
-                return [];
-            }
-        },
+        try {
+            const { error } = await window._supabase  // 修改这里
+                .from('class_scores')
+                .insert([{ 
+                    player_name: teacherName, 
+                    avg_score: avgScore,
+                    created_at: new Date().toISOString()
+                }]);
+            if (error) console.warn('上传失败:', error.message);
+        } catch (e) {
+            console.warn('上传异常:', e);
+        }
+    },
+    async fetchLeaderboard(limit = 37) {
+        try {
+            const twoMonthsAgo = new Date();
+            twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+            const { data, error } = await window._supabase  // 修改这里
+                .from('class_scores')
+                .select('player_name, avg_score, created_at')
+                .gte('created_at', twoMonthsAgo.toISOString())
+                .order('avg_score', { ascending: false })
+                .order('created_at', { ascending: true })
+                .limit(limit);
+            if (error) throw error;
+            return data || [];
+        } catch (e) {
+            console.warn('获取排行榜失败:', e);
+            return [];
+        }
+    },
         // 渲染排行榜到指定容器
         async renderTo(containerId) {
             const container = document.getElementById(containerId);
