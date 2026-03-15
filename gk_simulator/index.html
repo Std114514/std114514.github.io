@@ -1442,7 +1442,7 @@
                     </a>
                 </span>
             </div>
-            <div id="game-status" style="margin-top: 10px; font-size: 0.9rem; opacity: 0.8;">准备开始你的文化课之旅...</div>
+            <div id="game-status" style="margin-top: 10px; font-size: 0.9rem; opacity: 0.8;">准备你的文化课之旅...</div>
         </header>
 
         <!-- 统计面板 -->
@@ -1610,7 +1610,7 @@
         <div class="events">
             <div class="event-card">
                 <h3>🎯 当前状态</h3>
-                <p id="current-status">一切正常,准备开始学习。</p>
+                <p id="current-status">一切正常,准备学习。</p>
             </div>
             <div class="event-card relationship">
                 <h3>👥 关系动态</h3>
@@ -1705,6 +1705,7 @@
                         CC BY-NC-ND
                         4.0
                     </a>协议。
+                    点击
                 </p>
 
                 <!-- <div
@@ -1716,6 +1717,9 @@
                     • 多维度属性联动系统 (新增焦虑机制)<br>
                     • 策略性资源管理
                 </div> -->
+                <div class="donation-buttons">
+                    <button class="donation-btn" onclick="closeModal('welcome-modal')">开始游戏</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2730,7 +2734,7 @@
                 },
 
                 {
-                    text: "开始用计时器记录学习时长，仪式感",
+                    text: "用计时器记录学习时长，仪式感",
                     type: "neutral",
                     weight: 9,
                     condition: s => s.week > 8,
@@ -2790,7 +2794,7 @@
                 },
 
                 {
-                    text: "开始用不同颜色笔标注重点，视觉化",
+                    text: "用不同颜色笔标注重点，视觉化",
                     type: "neutral",
                     weight: 8,
                     condition: s => s.money > 30,
@@ -5407,7 +5411,7 @@
                 },
 
                 {
-                    text: "开始带饭，省钱又健康",
+                    text: "带饭，省钱又健康",
                     type: "good",
                     weight: 8,
                     condition: s => s.relationships.parents > 50,
@@ -6082,7 +6086,7 @@
                 title: "AFO第一天",
                 content: "你站在教室门口,深吸一口气。曾经的队友在隔壁班,听说他还在坚持竞赛。你握紧书包带,走进了新班级。",
                 choices: [
-                    { text: "找个角落坐下,低调开始", effect: { stress: 0.5 }, next: 2 },
+                    { text: "找个角落坐下,低调", effect: { stress: 0.5 }, next: 2 },
                     { text: "主动和同桌打招呼", effect: { classmateA: 5, stress: -3 }, next: 2 }
                 ]
             },
@@ -6367,7 +6371,7 @@
                 week: 24,
                 day: 3,
                 title: "寒假前夜",
-                content: "期末考试结束,你考进了班级前10。寒假来临,但你知道,真正的冲刺才刚刚开始。",
+                content: "期末考试结束,你考进了班级前10。寒假来临,但你知道,真正的冲刺才刚刚。",
                 choices: [
                     { text: "制定寒假计划,全力冲刺", effect: { energy: 5, stress: -5 }, next: 26 },
                     { text: "先放松几天,再学习", effect: { energy: 10, stress: -10 }, next: 26 },
