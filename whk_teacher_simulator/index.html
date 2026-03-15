@@ -552,99 +552,6 @@ const Game = {
         this.updateUI();
     },
 
-
-const Leaderboard = {
-        // 上传班级均分
-        async uploadScore(teacherName, avgScore) {
-            try {
-                const { error } = await supabase
-                    .from('class_scores')
-                    .insert([{ 
-                        player_name: teacherName, 
-                        avg_score: avgScore,
-                        created_at: new Date().toISOString()
-                    }]);
-                if (error) console.warn('上传失败:', error.message);
-            } catch (e) {
-                console.warn('上传异常:', e);
-            }
-        },
-        // 获取排行榜 (近2个月，前37，同分按时间早优先)
-        async fetchLeaderboard(limit = 37) {
-            try {
-                const twoMonthsAgo = new Date();
-                twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-                const { data, error } = await supabase
-                    .from('class_scores')
-                    .select('player_name, avg_score, created_at')
-                    .gte('created_at', twoMonthsAgo.toISOString())
-                    .order('avg_score', { ascending: false })
-                    .order('created_at', { ascending: true })
-                    .limit(limit);
-                if (error) throw error;
-                return data || [];
-            } catch (e) {
-                console.warn('获取排行榜失败:', e);
-                return [];
-            }
-        },
-        // 渲染排行榜到指定容器
-        async renderTo(containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            container.innerHTML = '<p style="text-align:center; color: #64748b;">加载中...</p>';
-            const list = await this.fetchLeaderboard(37);
-            if (list.length === 0) {
-                container.innerHTML = '<p style="text-align:center; color: #64748b;">暂无近2个月的记录</p>';
-                return;
-            }
-            let html = '<table class="leaderboard-table"><tr><th>排名</th><th>班主任</th><th>班级均分</th><th>记录时间</th></tr>';
-            list.forEach((item, idx) => {
-                const date = new Date(item.created_at).toLocaleDateString('zh-CN', { month:'2-digit', day:'2-digit' });
-                const rankClass = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : ''));
-                html += `<tr><td class="${rankClass}">${idx+1}</td><td>${item.player_name}</td><td>${Math.round(item.avg_score)}</td><td>${date}</td></tr>`;
-            });
-            html += '</table>';
-            container.innerHTML = html;
-        }
-    };
-
-    const originalStart = Game.start;
-    Game.start = function(diff) {
-        // 读取班主任姓名
-        const teacherInput = document.getElementById('teacher-name');
-        State.teacherName = teacherInput ? teacherInput.value.trim() || '匿名' : '匿名';
-        // 调用原start
-        originalStart.call(this, diff);
-    };
-
-    // ================== 修改 Game.showEnding 上传并显示排行榜 ==================
-    const originalShowEnding = Game.showEnding;
-    Game.showEnding = function() {
-        // 先执行原有逻辑（显示蹭饭地图等）
-        originalShowEnding.call(this);
-        // 计算班级均分
-        let total = 0;
-        State.students.forEach(s => {
-            const lastScore = s.history.scores[s.history.scores.length - 1];
-            total += lastScore || 0;
-        });
-        const avgScore = total / State.students.length;
-        // 异步上传分数（不阻塞）
-        Leaderboard.uploadScore(State.teacherName, avgScore);
-        // 显示排行榜
-        Leaderboard.renderTo('leaderboard-list');
-    };
-
-    // ================== UI 扩展：显示独立排行榜 ==================
-    UI.showLeaderboardModal = function() {
-        const modal = document.getElementById('leaderboard-modal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            Leaderboard.renderTo('leaderboard-modal-list');
-        }
-    };
-    
     shuffleArray(arr) {
         let res = [...arr];
         for (let i = res.length - 1; i > 0; i--) {
@@ -1411,6 +1318,98 @@ let lv = State.fac[id];
     else alert("班费不足！");
 };
 
+const Leaderboard = {
+        // 上传班级均分
+        async uploadScore(teacherName, avgScore) {
+            try {
+                const { error } = await supabase
+                    .from('class_scores')
+                    .insert([{ 
+                        player_name: teacherName, 
+                        avg_score: avgScore,
+                        created_at: new Date().toISOString()
+                    }]);
+                if (error) console.warn('上传失败:', error.message);
+            } catch (e) {
+                console.warn('上传异常:', e);
+            }
+        },
+        // 获取排行榜 (近2个月，前37，同分按时间早优先)
+        async fetchLeaderboard(limit = 37) {
+            try {
+                const twoMonthsAgo = new Date();
+                twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+                const { data, error } = await supabase
+                    .from('class_scores')
+                    .select('player_name, avg_score, created_at')
+                    .gte('created_at', twoMonthsAgo.toISOString())
+                    .order('avg_score', { ascending: false })
+                    .order('created_at', { ascending: true })
+                    .limit(limit);
+                if (error) throw error;
+                return data || [];
+            } catch (e) {
+                console.warn('获取排行榜失败:', e);
+                return [];
+            }
+        },
+        // 渲染排行榜到指定容器
+        async renderTo(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '<p style="text-align:center; color: #64748b;">加载中...</p>';
+            const list = await this.fetchLeaderboard(37);
+            if (list.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color: #64748b;">暂无近2个月的记录</p>';
+                return;
+            }
+            let html = '<table class="leaderboard-table"><tr><th>排名</th><th>班主任</th><th>班级均分</th><th>记录时间</th></tr>';
+            list.forEach((item, idx) => {
+                const date = new Date(item.created_at).toLocaleDateString('zh-CN', { month:'2-digit', day:'2-digit' });
+                const rankClass = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : ''));
+                html += `<tr><td class="${rankClass}">${idx+1}</td><td>${item.player_name}</td><td>${Math.round(item.avg_score)}</td><td>${date}</td></tr>`;
+            });
+            html += '</table>';
+            container.innerHTML = html;
+        }
+    };
+
+    const originalStart = Game.start;
+    Game.start = function(diff) {
+        // 读取班主任姓名
+        const teacherInput = document.getElementById('teacher-name');
+        State.teacherName = teacherInput ? teacherInput.value.trim() || '匿名' : '匿名';
+        // 调用原start
+        originalStart.call(this, diff);
+    };
+
+    // ================== 修改 Game.showEnding 上传并显示排行榜 ==================
+    const originalShowEnding = Game.showEnding;
+    Game.showEnding = function() {
+        // 先执行原有逻辑（显示蹭饭地图等）
+        originalShowEnding.call(this);
+        // 计算班级均分
+        let total = 0;
+        State.students.forEach(s => {
+            const lastScore = s.history.scores[s.history.scores.length - 1];
+            total += lastScore || 0;
+        });
+        const avgScore = total / State.students.length;
+        // 异步上传分数（不阻塞）
+        Leaderboard.uploadScore(State.teacherName, avgScore);
+        // 显示排行榜
+        Leaderboard.renderTo('leaderboard-list');
+    };
+
+    // ================== UI 扩展：显示独立排行榜 ==================
+    UI.showLeaderboardModal = function() {
+        const modal = document.getElementById('leaderboard-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            Leaderboard.renderTo('leaderboard-modal-list');
+        }
+    };
+    
 </script>
 
 
