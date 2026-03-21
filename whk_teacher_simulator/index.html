@@ -1384,7 +1384,7 @@ const Leaderboard = {
 
     // ================== 修改 Game.showEnding 上传并显示排行榜 ==================
     const originalShowEnding = Game.showEnding;
-    Game.showEnding = function() {
+    Game.showEnding = async function() {
         // 先执行原有逻辑（显示蹭饭地图等）
         originalShowEnding.call(this);
         // 计算班级均分
